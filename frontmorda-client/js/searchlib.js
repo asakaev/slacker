@@ -1,5 +1,5 @@
-var liveurl = "http://192.168.123.115/test?q=",
-	searchurl = "http://192.168.123.115/test3?q=";
+var liveurl = "http://25.177.203.124:1337/myjson?q=",
+	searchurl = "http://25.177.203.124:1337/myjson?q=";
 
 var Search = {
 	liveSearch : function(str){
@@ -8,9 +8,11 @@ var Search = {
 			return;
 		}
 		$.ajax({
-			// dataType: "JSON",
+			dataType: "JSONP",
+			cache: true,
 			type: "get",
 			url: liveurl+str,
+			jsonp: false,
 			
 			error : function(){
 				$(".errorlog").empty();
@@ -18,6 +20,7 @@ var Search = {
 				return;
 			},
 			success : function(data){
+				console.log(data);
 				// console.log(data.test);
 				$(".searchresult_ul").empty();
 				// $(".content").empty();
