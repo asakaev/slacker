@@ -1,3 +1,3 @@
-exports.test =  function(req, res){
-    res.jsonp({ result: 'just a text' });
+exports.myjson =  function(req, res){
+    res.jsonp({ result: 'Just a text.' });
 };
