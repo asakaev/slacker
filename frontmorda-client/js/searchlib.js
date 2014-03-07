@@ -44,29 +44,6 @@ var Search = {
 			},
 			success : function(data){
 				$(".searchresult").css({"display":"none"});
-				$(".depresult_ul").empty();
-				$(".divresult_ul").empty();
-				$(".peopleresult_ul").empty();
-				// console.log(data.test);
-				$.each(data, function(type,val){
-					$.each(val, function(i,key){
-						// var listItem = "<li>"+key+"<b>"+i+"</b></li>"
-						// $(".searchresult_ul").append(listItem);
-						if (type == "deps"){
-							depli = "<li><div class = \"rtitle\"><a href = \"?p="+type+"&id="+i+"\">"+key+"</a></div> <div class = \"rdescription\"> THIS IS <b>"+type+"</b>! </div> </li>"; 
-							$(".depresult_ul").append(depli); 
-						}
-						if (type == "divs"){
-							divli = "<li><div class = \"rtitle\"><a href = \"?p="+type+"&id="+i+"\">"+key+"</a></div> <div class = \"rdescription\"> THIS IS <b>"+type+"!</b> </div> </li>"; 
-							$(".divresult_ul").append(divli);
-						}
-						if (type == "fio"){
-							fioli = "<li><img src = '/pics/man.png'><a href = \"http://192.168.123.115/test2?q="+type+"&id="+i+"\">"+key+"</a></li>";
-							$(".peopleresult_ul").append(fioli);
-						}
-						// console.log(key);
-					})
-				});
 				$(".content").append(data);
 			}
 		})
@@ -77,7 +54,7 @@ $("#search").on("click", function(){
 	var request = $("#searchText").val();
 	Search.simpleSearch(request);
 })
-$(".searchresult").on("click", ".searchresult_ul li",function(){
+$(".searchresult").on("click", ".searchresult_ul li", function(){
 	var content = $(this).text();
 	content = content.substring(0, content.length - 3);
 	$("#searchText").val(content);
