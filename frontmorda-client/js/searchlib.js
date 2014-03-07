@@ -62,5 +62,5 @@ $(".searchresult").on("click", ".searchresult_ul li", function(){
 	content = content.substring(0, content.length - 3);
 	$("#searchText").val(content);
 	$(".searchresult").css({"display":"none"});
-	// alert(content);
+
 })
