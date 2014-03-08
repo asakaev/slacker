@@ -4,7 +4,7 @@
 <p id='output'>test</p>
 <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 <script>
-var path = "http://localhost:1337/myjson?q=cat&callback=?";
+var path = "http://localhost:3000/myjson?q=cat&callback=?";
 $.getJSON(path, function(data) {
     $('#output').text(data.result);
 });
