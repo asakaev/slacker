@@ -1,5 +1,5 @@
-var liveurl = "http://25.177.203.124:1337/myjson?q=",
-	searchurl = "http://25.177.203.124:1337/myjson?q=";
+var liveurl = "http://localhost:3000/myjson?callback=?&q=",
+	searchurl = "http://localhost:3000/myjson?callback=?&q=";
 
 var Search = {
 	liveSearch : function(str){
@@ -7,31 +7,18 @@ var Search = {
 			$(".searchresult").css({"display":"none"});
 			return;
 		}
-		$.ajax({
-			dataType: "JSONP",
-			cache: true,
-			type: "get",
-			url: liveurl+str,
-			jsonp: false,
-			
-			error : function(){
-				$(".errorlog").empty();
-				$(".errorlog").append("Server is not responding.");
-				return;
-			},
-			success : function(data){
-				console.log(data);
-				// console.log(data.test);
-				$(".searchresult_ul").empty();
-				// $(".content").empty();
-				$(".searchresult").css({"display": "block"});
-				$.each(data, function(i,val){
-					var listItem = "<li>"+val+"<b>"+i+"</b></li>"
-					$(".searchresult_ul").append(listItem);
-				})
-				
-			}
-		})
+
+		var path = "http://localhost:3000/bdjson?q=" + str + "&callback=?";
+		$.getJSON(path, function(data) {
+			$(".searchresult_ul").empty();
+			// $(".content").empty();
+			$(".searchresult").css({"display": "block"});
+			$.each(data, function(i,val){
+				console.log(data[i].name);
+				var listItem = "<li>"+val+"<b>"+i+"</b></li>"
+				$(".searchresult_ul").append(data[i].name + ' ');
+			})
+		});
 	},
 	simpleSearch : function(str){
 		if (str.length==0){
