@@ -12,7 +12,7 @@ var path = require('path');
 var app = express();
 
 // all environments
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 80);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 app.use(express.favicon());
@@ -35,8 +35,8 @@ app.get('/users', user.list);
 var myjson = require('./routes/myjson'); // cat or !cat
 app.get('/myjson', myjson.myjson);
 
-var bdjson = require('./routes/bdjson'); // mongoose
-app.get('/bdjson', bdjson.bdjson);
+var api = require('./routes/api'); // mongoose
+app.get('/api', api.dbGetJSON);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
