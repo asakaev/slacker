@@ -1,0 +1,10 @@
+{
+    "deploys": [{
+        "name": "work",
+        "type": "github",
+        "repo": "https://github.com/tematema/work.git",
+        "basepath": "/home/tema/work",
+        "command": "git pull",
+        "branch": "master"
+    }]
+}
