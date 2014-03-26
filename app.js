@@ -9,7 +9,7 @@ var winston = require('winston');
 var http = require('http');
 http.createServer(function (req, res) {
   res.writeHead(200, {'Content-Type': 'text/plain'});
-  res.end('Hello mofo after git auto!\n');
+  res.end('Hello mofo after git auto again!\n');
   //winston.info(new Date() + ': Who is there?');
   // console.log(new Date());
 }).listen(1337, '192.168.1.2');
