@@ -1,10 +1,10 @@
 {
-  "name": "ExpressApp2",
+  "name": "work",
   "version": "0.0.0",
-  "description": "ExpressApp2",
+  "description": "work app",
   "main": "app.js",
   "author": {
-    "name": "tema",
+    "name": "IMIT",
     "email": ""
   },
   "dependencies": {
