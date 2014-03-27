@@ -1,10 +1,43 @@
-var ip = '192.168.1.2';
-var ip2 = 'localhost';
 
+/**
+ * Module dependencies.
+ */
+
+var express = require('express');
+var routes = require('./routes');
+var user = require('./routes/user');
 var http = require('http');
-http.createServer(function (req, res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-  res.end('Check near zero Nodemon update.\n');
-  	console.log(new Date() + ': Who is there?');
-}).listen(1337, ip);
-console.log('Server running at http://192.168.1.2:1337/');
+var path = require('path');
+
+var app = express();
+
+// all environments
+app.set('port', process.env.PORT || 1337);
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+app.use(express.favicon());
+app.use(express.logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded());
+app.use(express.methodOverride());
+app.use(app.router);
+app.use(require('stylus').middleware(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// development only
+if ('development' == app.get('env')) {
+  app.use(express.errorHandler());
+}
+
+app.get('/', routes.index);
+app.get('/users', user.list);
+
+// var myjson = require('./routes/myjson'); // cat or !cat
+// app.get('/myjson', myjson.myjson);
+
+// var api = require('./routes/api'); // mongoose
+// app.get('/api', api.dbGetJSON);
+
+http.createServer(app).listen(app.get('port'), function(){
+  console.log('Express server listening on port ' + app.get('port'));
+});
