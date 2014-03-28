@@ -16,3 +16,11 @@ Win.
 5. Merge to master back and checkout BACK to master.
 6. Pull fresh master. fix diffs.
 7. Push your master changes and website will change automagically.
+
+===
+
+main page: http://dev.vf8.ru
+api: http://dev.vf8.ru/api?q=your_query
+GitHub Webhook: port 8080
+ssh: 20 (wan), 22 (lan)
+mongodb: 443 (wan), 27015 (lan)
