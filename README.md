@@ -10,7 +10,7 @@ Win.
 ====
 
 1. pull lastest master branch.
-2. checkout YOURs branck and merge master into it.
+2. checkout YOURs branch and merge master into it.
 3. edit and TEST it.
 4. do 9000 commits.
 5. merge to master back and checkout BACK to master.
