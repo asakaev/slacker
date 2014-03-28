@@ -35,8 +35,8 @@ app.get('/users', user.list);
 // var myjson = require('./routes/myjson'); // cat or !cat
 // app.get('/myjson', myjson.myjson);
 
-// var api = require('./routes/api'); // mongoose
-// app.get('/api', api.dbGetJSON);
+var api = require('./routes/api'); // mongoose
+app.get('/api', api.dbGetJSON);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
