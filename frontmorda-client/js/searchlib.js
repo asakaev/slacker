@@ -1,5 +1,5 @@
-var liveurl = "http://localhost:3000/myjson?callback=?&q=",
-	searchurl = "http://localhost:3000/myjson?callback=?&q=";
+var liveurl = "http://dev.vf8.ru/api?q=",
+	searchurl = "http://dev.vf8.ru/api?q=";
 
 var Search = {
 	liveSearch : function(str){
@@ -7,25 +7,34 @@ var Search = {
 			$(".searchresult").css({"display":"none"});
 			return;
 		}
-
-		var path = "http://localhost:3000/bdjson?q=" + str + "&callback=?";
-		$.getJSON(path, function(data) {
-			$(".searchresult_ul").empty();
-			// $(".content").empty();
-			$(".searchresult").css({"display": "block"});
-			$.each(data, function(i,val){
-				console.log(data[i].name);
-				var listItem = "<li>"+val+"<b>"+i+"</b></li>"
-				$(".searchresult_ul").append(data[i].name + ' ');
-			})
-		});
+		$.ajax({
+			dataType: "JSONP",
+			type: "get",
+			url: liveurl+str,
+			error : function(){
+				$(".errorlog").empty();
+				$(".errorlog").append("Server is not responding.");
+				return;
+			},
+			success : function(data){
+				data = $.parseJSON(JSON.stringify(data));
+				$(".searchresult_ul").empty();
+				// $(".content").empty();
+				$(".searchresult").css({"display": "block"});
+				$.each(data, function(i,val){
+					var listItem = "<li>"+val.name+"</li>";
+					$(".searchresult_ul").append(listItem);
+				})
+				
+			}
+		})
 	},
 	simpleSearch : function(str){
 		if (str.length==0){
 			return;
 		}
 		$.ajax({
-			// data: str,
+			dataType: "JSONP",
 			type: "get",
 			url: searchurl+str,
 			error : function(){
