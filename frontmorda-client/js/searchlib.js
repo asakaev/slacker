@@ -1,5 +1,5 @@
-var liveurl = "http://25.177.203.124:1337/bdjson?q=",
-	searchurl = "http://25.177.203.124:1337/bdjson?q=";
+var liveurl = "http://dev.vf8.ru/api?q=",
+	searchurl = "http://dev.vf8.ru/api?q=";
 
 var Search = {
 	liveSearch : function(str){
@@ -11,21 +11,18 @@ var Search = {
 			dataType: "JSONP",
 			type: "get",
 			url: liveurl+str,
-			
 			error : function(){
 				$(".errorlog").empty();
 				$(".errorlog").append("Server is not responding.");
 				return;
 			},
 			success : function(data){
-				data = JSON.stringify(data);
-				console.log(data);
-				// console.log(data.test);
+				data = $.parseJSON(JSON.stringify(data));
 				$(".searchresult_ul").empty();
 				// $(".content").empty();
 				$(".searchresult").css({"display": "block"});
 				$.each(data, function(i,val){
-					var listItem = "<li>"+val+"<b>"+i+"</b></li>"
+					var listItem = "<li>"+val.name+"</li>";
 					$(".searchresult_ul").append(listItem);
 				})
 				
@@ -37,7 +34,7 @@ var Search = {
 			return;
 		}
 		$.ajax({
-			// data: str,
+			dataType: "JSONP",
 			type: "get",
 			url: searchurl+str,
 			error : function(){
