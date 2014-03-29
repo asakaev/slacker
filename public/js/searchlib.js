@@ -55,7 +55,6 @@ $("#search").on("click", function(){
 })
 $(".searchresult").on("click", ".searchresult_ul li", function(){
 	var content = $(this).text();
-	content = content.substring(0, content.length - 3);
 	$("#searchText").val(content);
 	$(".searchresult").css({"display":"none"});
 
