@@ -18,6 +18,7 @@ var Search = {
 			},
 			success : function(data){
 				data = $.parseJSON(JSON.stringify(data));
+				if(data == ""){return;}
 				$(".searchresult_ul").empty();
 				// $(".content").empty();
 				$(".searchresult").css({"display": "block"});
@@ -56,6 +57,10 @@ $("#search").on("click", function(){
 $(".searchresult").on("click", ".searchresult_ul li", function(){
 	var content = $(this).text();
 	$("#searchText").val(content);
+	$('.logo-big').css("display", "none");
+	$('#search').css({'width': '50%',
+	'position': 'fixed',
+	'top': '5%', 'margin-top':'0'})
 	$(".searchresult").css({"display":"none"});
 
 })
