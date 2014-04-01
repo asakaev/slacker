@@ -1,4 +1,13 @@
-﻿var mongoose = require('mongoose');
+﻿function replaceAllBackSlash(targetStr){
+      var index=targetStr.indexOf("\\");
+      while(index >= 0){
+          targetStr=targetStr.replace("\\","");
+          index=targetStr.indexOf("\\");
+      }
+      return targetStr;
+  }
+
+var mongoose = require('mongoose');
 
 var kittySchema = mongoose.Schema({
     name: String
@@ -17,7 +26,9 @@ exports.dbGetJSON =  function(req, res){
       db.once('open', function callback () {
         var Kitten = mongoose.model('Kitten', kittySchema)
 
-        Kitten.find({ name: new RegExp(req.query.q, 'i') }, function (err, kittens) {
+        var req = replaceAllBackSlash(req.query.q);
+
+        Kitten.find({ name: new RegExp(req, 'i') }, function (err, kittens) {
         if (err) return console.error(err);
           res.jsonp(kittens);
           mongoose.disconnect();
