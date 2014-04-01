@@ -11,7 +11,7 @@ exports.dbGetJSON =  function(req, res){
     }
     else
     {
-      mongoose.connect('mongodb://192.168.1.2/test');
+      mongoose.connect('mongodb://dev.vf8.ru:443/test');
       var db = mongoose.connection;
       db.on('error', console.error.bind(console, 'connection error:'));
       db.once('open', function callback () {

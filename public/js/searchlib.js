@@ -1,5 +1,5 @@
-var liveurl = "http://dev.vf8.ru/api?q=",
-	searchurl = "http://dev.vf8.ru/api?q=";
+var liveurl = "/api?q=",
+	searchurl = "/api?q=";
 
 var Search = {
 	liveSearch : function(str){
@@ -64,3 +64,36 @@ $(".searchresult").on("click", ".searchresult_ul li", function(){
 	$(".searchresult").css({"display":"none"});
 
 })
+// function autocomplete( textBoxId, containerDivId ) {
+//     var ac = this;
+//     this.textbox     = $(textBoxId);
+//     this.ul         = $(containerDivId);
+//     this.list        = this.ul.find('li');
+//     this.pointer     = null;
+
+//     this.textbox.onkeydown = function( e ) {
+//         e = e || window.event;
+//         switch( e.keyCode ) {
+//             case 38: //up
+//                 ac.selectDiv(-1);
+//                 break;
+//             case 40: //down
+//                 ac.selectDiv(1);
+//                 break;
+//         }
+//     }
+
+//     this.selectDiv = function( inc ) {
+//         if( this.pointer !== null && this.pointer+inc >= 0 && this.pointer+inc < this.list.length ) {
+//             this.list[this.pointer].className = '';
+//             this.pointer += inc;
+//             this.list[this.pointer].className = 'active';
+//             this.textbox.value = this.list[this.pointer].innerHTML;
+//         }
+//         if( this.pointer === null ) {
+//             this.pointer = 0;
+//             this.list[this.pointer].className = 'active';
+//             this.textbox.value = this.list[this.pointer].innerHTML;
+//         }
+//     }
+// } 
