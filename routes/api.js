@@ -26,9 +26,10 @@ exports.dbGetJSON =  function(req, res){
       db.once('open', function callback () {
         var Kitten = mongoose.model('Kitten', kittySchema)
 
-        var req = replaceAllBackSlash(req.query.q);
+        //var req = replaceAllBackSlash(req.query.q);
+        console.log(req.query.q);
 
-        Kitten.find({ name: new RegExp(req, 'i') }, function (err, kittens) {
+        Kitten.find({ name: new RegExp(req.query.q, 'i') }, function (err, kittens) {
         if (err) return console.error(err);
           res.jsonp(kittens);
           mongoose.disconnect();
