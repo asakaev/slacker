@@ -1,4 +1,7 @@
-﻿function replaceAllBackSlash(targetStr){
+﻿var mongoose = require( 'mongoose' );
+var Comment = mongoose.model( 'Comment' );
+
+function replaceAllBackSlash(targetStr){
       var index=targetStr.indexOf("\\");
       while(index >= 0){
           targetStr=targetStr.replace("\\",'');
@@ -7,11 +10,6 @@
       return targetStr;
   }
 
-var mongoose = require('mongoose');
-
-var kittySchema = mongoose.Schema({
-    name: String
-})
 
 exports.dbGetJSON =  function(req, res){
 
@@ -27,19 +25,10 @@ exports.dbGetJSON =  function(req, res){
       }
       else
       {
-        mongoose.connect('mongodb://dev.vf8.ru:443/test');
-        var db = mongoose.connection;
-        db.on('error', console.error.bind(console, 'connection error:'));
-        db.once('open', function callback () {
-          var Kitten = mongoose.model('Kitten', kittySchema)
-
-          Kitten.find({ name: new RegExp(clean, 'i') }, function (err, kittens) {
-          if (err) return console.error(err);
-            res.jsonp(kittens);
-            mongoose.disconnect();
-          })
-          
-        });
+        Comment.find({ name: new RegExp(req.query.q, 'i') }, function (err, kittens) {
+        if (err) return console.error(err);
+          res.jsonp(kittens);
+        }) // end kittens find
       }
     }
 };
