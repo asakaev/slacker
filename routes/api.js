@@ -1,5 +1,5 @@
 ﻿var mongoose = require( 'mongoose' );
-var Comment = mongoose.model( 'Comment' );
+var Vacancy = mongoose.model( 'Vacancy' );
 
 function replaceAllBackSlash(targetStr){
       var index=targetStr.indexOf("\\");
@@ -25,9 +25,10 @@ exports.dbGetJSON =  function(req, res){
       }
       else
       {
-        Comment.find({ name: new RegExp(clean, 'i') }, function (err, kittens) {
+        Vacancy.find({ vacancy: new RegExp(clean, 'i') }, function (err, vacancies) {
         if (err) return console.error(err);
-          res.jsonp(kittens);
+          console.log(vacancies);
+          res.jsonp(vacancies);
         }) // end kittens find
       }
     }

@@ -1,11 +1,9 @@
 var mongoose = require( 'mongoose' );
 var Schema   = mongoose.Schema;
  
-var Comment = new Schema({
-    username : String,
-    content  : String,
-    created  : Date
+var Vacancy = new Schema({
+    vacancy : String
 });
  
-mongoose.model( 'Comment', Comment );
-mongoose.connect( 'mongodb://localhost/express-comment' );
+mongoose.model( 'Vacancy', Vacancy );
+mongoose.connect( 'mongodb://localhost/work' );

@@ -23,7 +23,7 @@ var Search = {
 				// $(".content").empty();
 				$(".searchresult").css({"display": "block"});
 				$.each(data, function(i,val){
-					var listItem = "<li>"+val.name+"</li>";
+					var listItem = "<li>"+val.vacancy+"</li>";
 					$(".searchresult_ul").append(listItem);
 				})
 				
