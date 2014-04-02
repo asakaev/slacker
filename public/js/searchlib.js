@@ -8,7 +8,7 @@ var Search = {
 			return;
 		}
 		$.ajax({
-			dataType: "JSONP",
+			dataType: "JSON",
 			type: "get",
 			url: liveurl+str,
 			error : function(){
