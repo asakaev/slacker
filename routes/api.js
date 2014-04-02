@@ -25,7 +25,7 @@ exports.dbGetJSON =  function(req, res){
       }
       else
       {
-        Comment.find({ name: new RegExp(req.query.q, 'i') }, function (err, kittens) {
+        Comment.find({ name: new RegExp(clean, 'i') }, function (err, kittens) {
         if (err) return console.error(err);
           res.jsonp(kittens);
         }) // end kittens find
