@@ -27,9 +27,8 @@ exports.dbGetJSON =  function(req, res){
       {
         Vacancy.find({ vacancy: new RegExp(clean, 'i') }, function (err, vacancies) {
         if (err) return console.error(err);
-          console.log(vacancies);
           res.jsonp(vacancies);
-        }) // end kittens find
+        }) // end vacancies find
       }
     }
 };
