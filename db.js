@@ -6,4 +6,4 @@ var Vacancy = new Schema({
 });
  
 mongoose.model( 'Vacancy', Vacancy );
-mongoose.connect( 'mongodb://127.0.0.1/work' );
+mongoose.connect( 'mongodb://192.168.1.2/work' );
