@@ -2,7 +2,10 @@ var mongoose = require( 'mongoose' );
 var Schema   = mongoose.Schema;
  
 var Vacancy = new Schema({
-    vacancy : String
+    vacancy : String,
+    text : String,
+    sputnikId : String,
+    tel : String
 });
  
 mongoose.model( 'Vacancy', Vacancy );
