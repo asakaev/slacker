@@ -19,8 +19,8 @@ Win.
 
 ===
 
-main page: http://dev.vf8.ru
-api: http://dev.vf8.ru/api?q=your_query
-GitHub Webhook: port 8080
-ssh: 20 (wan), 22 (lan)
-mongodb: 443 (wan), 27017 (lan)
+— main page: http://dev.vf8.ru
+— api: http://dev.vf8.ru/api?q=your_query
+— GitHub Webhook: port 8080
+— ssh: 110 (wan), 22 (lan)
+— mongodb: 443 (wan), 27017 (lan)
