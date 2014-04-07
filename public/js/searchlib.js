@@ -18,7 +18,11 @@ var Search = {
 			},
 			success : function(data){
 				data = $.parseJSON(JSON.stringify(data));
-				if(data == ""){return;}
+				if(data == ""){
+					$(".searchresult").css({"display":"none"});
+					$(".searchresult_ul").empty();
+					return;
+				}
 				$(".searchresult_ul").empty();
 				// $(".content").empty();
 				$(".searchresult").css({"display": "block"});
