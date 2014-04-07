@@ -9,4 +9,4 @@ var Vacancy = new Schema({
 });
  
 mongoose.model( 'Vacancy', Vacancy );
-mongoose.connect( 'mongodb://localhost/work' );
+mongoose.connect( 'mongodb://dev.vf8.ru:443/work' );
