@@ -11,14 +11,18 @@ var vacanciesSchema = mongoose.Schema({
     date: String
 }, { versionKey: false });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
-//var done = 0;
+
+var vacanciesCount;
+var done = 0;
 
 function getPager(callback) {
     request('http://www.sputnik-cher.ru/301/', function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
-            pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
-            pagesCount = pagesCount.replace('?p=', '');
+            var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
+            pagesCount = parseInt(pagesCount.replace('?p=', ''));
+            vacanciesCount = $('.countItemsInCategory')["0"].children["0"].data;
+            vacanciesCount = parseInt(vacanciesCount.substring(22, vacanciesCount.length - 22));
             callback(pagesCount);
         }
     })
@@ -37,22 +41,24 @@ function getContent(pageNum) {
                 obj.text = text.substring(1, text.length - 7);
                 obj.sputnikId = nodes[index].children["1"].attribs.name;
 
-                if(nodes[index].children["5"].children["0"] !== undefined) {
+                if (nodes[index].children["5"].children["0"] !== undefined) {
                     obj.tel = nodes[index].children["5"].children["0"].data;
                 }
 
                 obj.date = date;
-                //console.log(obj.vacancy);
                 var testVac = new vacancy(obj);
-                testVac.save();
-                //console.log(++done);
+                testVac.save(function(){
+                    done++;
+                    console.log('saved ' + done);
+                    if (done == 20) Done();
+                });
             }); // end of DOM traversal
         }
     });
 }
 
 function pagesLoop(pages, callback) {
-    for (var i = 1; i <= pages; i++) {
+    for (var i = 1; i <= 1; i++) {
         console.log('Getting page: ' + i);
         getContent(i);
     }
@@ -60,15 +66,17 @@ function pagesLoop(pages, callback) {
 }
 
 function Done() {
-    //mongoose.disconnect();
+    mongoose.disconnect();
     console.log('Done');
 }
 
 function Run() {
     console.log('Connecting to DB.');
-    mongoose.connect('mongodb://dev.vf8.ru:443/work');
+    mongoose.connect('mongodb://localhost/work');
     getPager(function (pagesCount) {
-        pagesLoop(pagesCount, Done);
+        pagesLoop(pagesCount, function() {
+            console.log('pages loop done.');
+        });
     });
 }
 
