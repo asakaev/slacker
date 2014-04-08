@@ -1,5 +1,4 @@
 var start = new Date().getTime();
-var end;
 
 var request = require('request');
 var cheerio = require('cheerio');
@@ -67,8 +66,7 @@ function pagesLoop(pages) {
 
 function Done() {
     mongoose.disconnect();
-    end = new Date().getTime();
-    var time = end - start;
+    var time = new Date().getTime() - start;
     console.log(vacanciesCount + ' vacancies added in ' + time/1000 + ' sec.');
 }
 
