@@ -46,10 +46,8 @@ function getContent(pageNum) {
                 }
 
                 obj.date = date;
-                var testVac = new vacancy(obj);
-                testVac.save(function(){
+                new vacancy(obj).save(function () {
                     done++;
-                    console.log('saved ' + done);
                     if (done == 20) Done();
                 });
             }); // end of DOM traversal
@@ -57,26 +55,23 @@ function getContent(pageNum) {
     });
 }
 
-function pagesLoop(pages, callback) {
+function pagesLoop(pages) {
     for (var i = 1; i <= 1; i++) {
         console.log('Getting page: ' + i);
         getContent(i);
     }
-    callback();
 }
 
 function Done() {
     mongoose.disconnect();
-    console.log('Done');
+    console.log(vacanciesCount + ' vacancies added.');
 }
 
 function Run() {
     console.log('Connecting to DB.');
     mongoose.connect('mongodb://localhost/work');
     getPager(function (pagesCount) {
-        pagesLoop(pagesCount, function() {
-            console.log('pages loop done.');
-        });
+        pagesLoop(pagesCount);
     });
 }
 
