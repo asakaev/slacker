@@ -1,10 +1,8 @@
-work
-====
+# work
 
 1. clone from GitHub.
 2. cd /your/full/path/toproject
 3. npm install (It will install all npm modules needed to run)
-
 Win.
 
 ====
@@ -19,8 +17,8 @@ Win.
 
 ===
 
-— main page: http://dev.vf8.ru
-— api: http://dev.vf8.ru/api?q=your_query
-— GitHub Webhook: port 8080
-— ssh: 110 (wan), 22 (lan)
-— mongodb: 443 (wan), 27017 (lan)
+* main page: http://dev.vf8.ru
+* api: http://dev.vf8.ru/api?q=your_query
+* GitHub Webhook: port 8080
+* ssh: 3000 (wan), 22 (lan)
+* mongodb: 443 (wan), 27017 (lan)
