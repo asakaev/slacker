@@ -1,3 +1,6 @@
+var start = new Date().getTime();
+var end;
+
 var request = require('request');
 var cheerio = require('cheerio');
 var mongoose = require('mongoose');
@@ -48,7 +51,7 @@ function getContent(pageNum) {
                 obj.date = date;
                 new vacancy(obj).save(function () {
                     done++;
-                    if (done == 20) Done();
+                    if (done == vacanciesCount) Done();
                 });
             }); // end of DOM traversal
         }
@@ -56,19 +59,21 @@ function getContent(pageNum) {
 }
 
 function pagesLoop(pages) {
-    for (var i = 1; i <= 1; i++) {
-        console.log('Getting page: ' + i);
+    for (var i = 1; i <= pages; i++) {
+        // console.log('Getting page: ' + i);
         getContent(i);
     }
 }
 
 function Done() {
     mongoose.disconnect();
-    console.log(vacanciesCount + ' vacancies added.');
+    end = new Date().getTime();
+    var time = end - start;
+    console.log(vacanciesCount + ' vacancies added in ' + time/1000 + ' sec.');
 }
 
 function Run() {
-    console.log('Connecting to DB.');
+    console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work');
     getPager(function (pagesCount) {
         pagesLoop(pagesCount);
