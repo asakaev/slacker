@@ -46,14 +46,13 @@ function getPager(callback) {
             $ = cheerio.load(body);
             date = $('.dateBut')["1"].children["1"].children["0"].data;
 
-            if (date == sputnikLastUpdate)
-            {
+            if (date == sputnikLastUpdate) {
                 console.log('Last update was ' + date + ' and we already parsed it.');
                 process.exit(1);
             }
             else {
-                fs.writeFile("sputnikLastUpdate.txt", date, function(err) {
-                    if(err) {
+                fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
+                    if (err) {
                         console.log(err);
                         process.exit(1);
                     }
