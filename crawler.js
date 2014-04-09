@@ -8,6 +8,19 @@ var start = new Date().getTime();
 var request = require('request');
 var cheerio = require('cheerio');
 var mongoose = require('mongoose');
+var fs = require('fs');
+
+var sputnikLastUpdate;
+var date;
+
+// Читаем когда последний раз на спутнике обновление было
+fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
+    if (err) {
+        console.log(err);
+        process.exit(1);
+    }
+    sputnikLastUpdate = data;
+});
 
 var db = mongoose.connection;
 var vacanciesSchema = mongoose.Schema({
@@ -31,6 +44,22 @@ function getPager(callback) {
     request('http://www.sputnik-cher.ru/301/', function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
+            date = $('.dateBut')["1"].children["1"].children["0"].data;
+
+            if (date == sputnikLastUpdate)
+            {
+                console.log('Last update was ' + date + ' and we already parsed it.');
+                process.exit(1);
+            }
+            else {
+                fs.writeFile("sputnikLastUpdate.txt", date, function(err) {
+                    if(err) {
+                        console.log(err);
+                        process.exit(1);
+                    }
+                });
+            }
+
             var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
             waiter.vacCount = $('.countItemsInCategory')["0"].children["0"].data;
@@ -48,7 +77,6 @@ function getContent(pageNum) {
     request('http://www.sputnik-cher.ru/301/?p=' + pageNum, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
-            var date = $('.dateBut')["1"].children["1"].children["0"].data;
             var nodes = $('.itemOb');
             nodes.each(function (index) {
                 var obj = {};
