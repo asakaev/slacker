@@ -3,6 +3,8 @@ var liveurl = "/api?q=",
 
 var Search = {
 	liveSearch : function(str){
+		$('.content_ul').empty();
+		console.log('should b empty!');
 		if (str.length==0){ 
 			$(".searchresult").css({"display":"none"});
 			return;
@@ -37,18 +39,32 @@ var Search = {
 	simpleSearch : function(str){
 		if (str.length==0){
 			return;
-		}
+		};
+		changeState(1);
 		$.ajax({
-			dataType: "JSONP",
+			dataType: "JSON",
 			type: "get",
-			url: searchurl+str,
+			url: liveurl+str,
 			error : function(){
 				$(".errorlog").empty();
 				$(".errorlog").append("Server is not responding.");
+				return;
 			},
 			success : function(data){
-				$(".searchresult").css({"display":"none"});
-				$(".content").append(data);
+
+				data = $.parseJSON(JSON.stringify(data));
+				if(data == ""){
+					$(".searchresult").append("По вашему запросу ничего не найдено.");
+					return;
+				}
+				$(".content_ul").empty();
+				// $(".content").empty();
+				$("content").css({"display": "block"});
+				$.each(data, function(i,val){
+					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"</div></li>";
+					$(".content_ul").append(listItem);
+				})
+				
 			}
 		})
 
@@ -59,13 +75,15 @@ $("#search").on("click", function(){
 	Search.simpleSearch(request);
 })
 $(".searchresult").on("click", ".searchresult_ul li", function(){
-	var content = $(this).text();
+	var content = $(this).text(),
+		pageurl = liveurl + content;
 	$("#searchText").val(content);
-	$('.logo-big').css("display", "none");
-	$('#search').css({'width': '50%',
-	'position': 'fixed',
-	'top': '5%', 'margin-top':'0'})
-	$(".searchresult").css({"display":"none"});
+	Search.simpleSearch(content);
+	if(pageurl!=window.location){
+        window.history.pushState({path:pageurl},'',pageurl);
+    }
+	
+
 
 })
 // function autocomplete( textBoxId, containerDivId ) {
@@ -101,3 +119,15 @@ $(".searchresult").on("click", ".searchresult_ul li", function(){
 //         }
 //     }
 // } 
+$('#searchText').on('input', function(){
+	Search.liveSearch(this.value);
+
+});
+$('#searchText').on('keydown', function(e){
+	if (e.keyCode == 13){
+		e.preventDefault();
+		Search.simpleSearch($('#searchText').val());
+	}
+});
+
+// , ontextinput=''
