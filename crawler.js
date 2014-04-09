@@ -13,7 +13,7 @@ var fs = require('fs');
 var sputnikLastUpdate;
 var date;
 
-// Читаем когда последний раз на спутнике обновление было
+// get last sputnik website update
 fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
     if (err) {
         console.log(err);
@@ -32,7 +32,7 @@ var vacanciesSchema = mongoose.Schema({
 }, { versionKey: false });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
-var waiter = {}; // ждёт пока все вакансии с сайта добавятся в базу и отключается как только всё
+var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
 waiter.vacCount = 0;
 waiter.vacChecked = 0;
 waiter.vacAdded = 0;
@@ -87,15 +87,15 @@ function getContent(pageNum) {
                     obj.tel = nodes[index].children["5"].children["0"].data;
                 }
                 obj.date = date;
-                // save to db
 
+                // find if exist and save to db
                 vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
                     if (err) {
                         console.log(err);
                         process.exit(1);
                     }
 
-                    // если такой записи нет то сохраняем
+                    // if not found then save to db
                     if (!id) {
                         new vacancy(obj).save(function (err) {
                             if (err) {
