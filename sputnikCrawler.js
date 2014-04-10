@@ -17,6 +17,7 @@ var date;
 fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
     if (err) {
         console.log(err);
+        mongoose.disconnect();
         process.exit(1);
     }
     sputnikLastUpdate = data;
@@ -48,12 +49,14 @@ function getPager(callback) {
 
             if (date == sputnikLastUpdate) {
                 console.log('Last update was ' + date + ' and we already parsed it.');
+                mongoose.disconnect();
                 process.exit(1);
             }
             else {
                 fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
                     if (err) {
                         console.log(err);
+                        mongoose.disconnect();
                         process.exit(1);
                     }
                 });
@@ -67,6 +70,7 @@ function getPager(callback) {
         }
         else {
             console.log('Cannot get Sputnik pager.');
+            mongoose.disconnect();
             process.exit(1);
         }
     })
@@ -92,6 +96,7 @@ function getContent(pageNum) {
                 vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
                     if (err) {
                         console.log(err);
+                        mongoose.disconnect();
                         process.exit(1);
                     }
 
@@ -100,6 +105,7 @@ function getContent(pageNum) {
                         new vacancy(obj).save(function (err) {
                             if (err) {
                                 console.log(err);
+                                mongoose.disconnect();
                                 process.exit(1);
                             }
                             else {
@@ -117,6 +123,7 @@ function getContent(pageNum) {
         }
         else {
             console.log('Cannot get page ' + pageNum + ', stop now.');
+            mongoose.disconnect();
             process.exit(1);
         }
     });
