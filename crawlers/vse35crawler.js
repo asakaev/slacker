@@ -30,22 +30,22 @@ fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
 
 var db = mongoose.connection;
 var vacanciesSchema = mongoose.Schema({
-    vse35Id:  Number,
+    vse35Id: Number,
     vacancy: String,
-    text:   String,
-    price:   String,
+    text: String,
+    price: String,
     priceCustom: String,
-    added:   String,
-    edited:   String,
-    author:   String,
-    tel:   String,
-    email:   String,
-    visitors:   String,
-    paymentPeriod:   String,
-    experience:   String,
+    added: String,
+    edited: String,
+    author: String,
+    tel: String,
+    email: String,
+    visitors: String,
+    paymentPeriod: String,
+    experience: String,
     education: String,
-    busyness:   String,
-    workSchedule:   String,
+    busyness: String,
+    workSchedule: String,
     picture: String,
     authorDetailName: String,
     authorDetailId: Number
@@ -67,7 +67,7 @@ var totalVacancies = 0;
 function getJobPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
-            $ = cheerio.load(translator.convert(body));
+            $ = cheerio.load(translator.convert(body).toString());
 
             var categories = $('.st-cats-list.two.job .cat');
             categoriesCount = categories.length;
@@ -114,8 +114,10 @@ function getJobPage(callback) {
 function getPageById(id, callback) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
-            $ = cheerio.load(translator.convert(body));
+            $ = cheerio.load(translator.convert(body).toString());
             var obj = {};
+
+            var stop = 1;
 
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
@@ -152,7 +154,7 @@ function getPageById(id, callback) {
             var valueRightBlock = $('.contact-box .field_value');
 
             if (author) {
-                valueRightBlock.splice(0, 1); // если автор есть то выкидываем, иначе мешает с телефоном/емейлом
+                valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
             }
 
             // Если всего один элемент — значит телефон, иначе ещё и емейл
@@ -229,7 +231,6 @@ function run() {
     });
 
     getPageById(803168, function (obj) {
-        //console.log(obj);
         console.log('read ok');
         saveToDb(obj);
     });
