@@ -105,7 +105,7 @@ function getPageById(id) {
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
-            obj.text = $('.col1 .detail_text').text().trim().replace('\n', ' ');
+            obj.text = $('.col1 .detail_text').text().trim();
             obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
 
             var addedInfo = $('.added-info')["0"];
@@ -128,6 +128,11 @@ function getPageById(id) {
             // Разбираем блок контактов справа
             var contactsCount = $('.contact-box .field_name').length;
             var valueRightBlock = $('.contact-box .field_value');
+            console.log(valueRightBlock);
+
+            if (author) {
+                valueRightBlock.splice(0, 1); // если автор есть то выкидываем, иначе мешает с телефоном/емейлом
+            }
 
             // Если всего один элемент — значит телефон, иначе ещё и емейл
             if (contactsCount == 1) {
@@ -209,7 +214,7 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(809218);
+getPageById(808906);
 //getPageById(809828);
 
 
