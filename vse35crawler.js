@@ -106,11 +106,14 @@ function getPageById(id) {
             obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
             obj.text = $('.col1 .detail_text').text().trim();
-            obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // rub and spaces cleanup
+            obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
 
             var addedInfo = $('.added-info')["0"];
             obj.added = addedInfo.children["3"].children["1"].children["0"].data;
-            obj.edited = addedInfo.children["5"].children["1"].children["0"].data;
+            var edited = addedInfo.children["5"].children["1"].children["0"].data;
+            if (edited != obj.added) {
+                obj.edited = edited;
+            }
 
             var picture = $('.preview-box')["0"];
             if (picture) {
@@ -123,11 +126,11 @@ function getPageById(id) {
             }
 
             // Разбираем блок контактов справа
-            var nameRightBlock = $('.contact-box .field_name');
+            var contactsCount = $('.contact-box .field_name').length;
             var valueRightBlock = $('.contact-box .field_value');
 
-            // Если больше одного элемента значит есть емейл
-            if (nameRightBlock.length == 1) {
+            // Если всего один элемент — значит телефон, иначе ещё и емейл
+            if (contactsCount == 1) {
                 obj.tel = valueRightBlock["1"].children["0"].data.trim();
             }
             else {
