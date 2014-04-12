@@ -1,3 +1,5 @@
+// vse35 crawler
+
 // var start = new Date().getTime();
 
 var request = require('request');
@@ -46,7 +48,7 @@ var categoriesCount;
 var totalVacancies = 0;
 
 function getJobPage(callback) {
-    request({ url: 'http://vse35.ru/job/', encoding: null }, function (error, response, body) {
+    request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body));
 
@@ -92,66 +94,80 @@ function getJobPage(callback) {
     })
 };
 
-getJobPage();
+function getPageById(id) {
+    request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            $ = cheerio.load(translator.convert(body));
+            var vacName = $('.header-desc-ad-box .title');
+            var fieldValue = $('.field_value');
+            var addedInfo = $('.added-info');
+            var price = $('.price');
+            var params = $('.item_inner .item_value');
+            var text = $('.detail_text');
 
-// function getContent(pageNum) {
-//     request('http://www.sputnik-cher.ru/301/?p=' + pageNum, function (error, response, body) {
-//         if (!error && response.statusCode == 200) {
-//             $ = cheerio.load(body);
-//             var nodes = $('.itemOb');
-//             nodes.each(function (index) {
-//                 var obj = {};
-//                 obj.vacancy = nodes[index].children["3"].children["0"].data;
-//                 var text = nodes[index].children["4"].data;
-//                 obj.text = text.substring(1, text.length - 7);
-//                 obj.sputnikId = nodes[index].children["1"].attribs.name;
-//                 if (nodes[index].children["5"].children["0"] !== undefined) {
-//                     obj.tel = nodes[index].children["5"].children["0"].data;
-//                 }
-//                 obj.date = date;
+            var obj = {};
+            obj.vacancy = vacName["0"].children["0"].data;
+            obj.author = fieldValue["0"].children["0"].data;
+            obj.author = obj.author.substring(2);
+            obj.email = fieldValue["3"].children["0"].data;
+            obj.tel = fieldValue["2"].children["0"].data;
+            obj.tel = obj.tel.substring(1);
+            obj.vse35Id = id;
+            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+            obj.edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
+            obj.price = price["0"].children["1"].data;
+            obj.price = obj.price.substring(1, obj.price.length - 3);
+            obj.priceCustom = params["1"].children["0"].data;
+            obj.priceCustom = obj.priceCustom.substring(22, obj.priceCustom.length - 11);
+            obj.fulltime = params["5"].children["0"].data;
+            obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
+            obj.busyness = params["4"].children["0"].data;
+            obj.busyness = obj.busyness.substring(23, obj.busyness.length - 18);
+            obj.experience = params["3"].children["0"].data;
+            obj.experience = obj.experience.substring(23, obj.experience.length - 18);
+            obj.text = text["0"].children["0"].data;
 
-//                 // find if exist and save to db
-//                 vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
-//                     if (err) {
-//                         console.log(err);
-//                         mongoose.disconnect();
-//                         process.exit(1);
-//                     }
+            console.log(obj);
+            var a = 5;
 
-//                     // if not found then save to db
-//                     if (!id) {
-//                         new vacancy(obj).save(function (err) {
-//                             if (err) {
-//                                 console.log(err);
-//                                 mongoose.disconnect();
-//                                 process.exit(1);
-//                             }
-//                             else {
-//                                 waiter.vacAdded++;
-//                                 waiter.incrementAndCheck();
-//                             }
-//                         });
-//                     }
-//                     else {
-//                         waiter.incrementAndCheck();
-//                     }
-//                 });
+            // find if exist and save to db
+            vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
+                if (err) {
+                    console.log(err);
+                    //mongoose.disconnect();
+                    process.exit(1);
+                }
 
-//             }); // end of DOM traversal
-//         }
-//         else {
-//             console.log('Cannot get page ' + pageNum + ', stop now.');
-//             mongoose.disconnect();
-//             process.exit(1);
-//         }
-//     });
-// }
+                // if not found then save to db
+                if (!id) {
+                    new vacancy(obj).save(function (err) {
+                        if (err) {
+                            console.log(err);
+                            mongoose.disconnect();
+                            process.exit(1);
+                        }
+                        else {
+                            waiter.vacAdded++;
+                            waiter.incrementAndCheck();
+                        }
+                    });
+                }
+                else {
+                    //waiter.incrementAndCheck();
+                }
+            });
 
-// function pagesLoop(pages) {
-//     for (var i = 1; i <= pages; i++) {
-//         getContent(i);
-//     }
-// }
+        }
+        else {
+            console.log('Cannot get page with id: ' + id + ', stop now.');
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+    });
+}
+
+//getJobPage();
+getPageById(809828);
 
 // function done() {
 //     mongoose.disconnect();
