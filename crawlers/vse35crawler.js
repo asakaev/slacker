@@ -11,8 +11,7 @@ var Iconv = require('iconv').Iconv;
 var fromEnc = 'cp1251';
 var toEnc = 'utf-8';
 var translator = new Iconv(fromEnc, toEnc);
-
-//var mongoose = require('mongoose');
+var mongoose = require('mongoose');
 var fs = require('fs');
 
 // var sputnikLastUpdate;
@@ -29,15 +28,30 @@ fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
     console.log(lastAddedVacancyId);
 });
 
-// var db = mongoose.connection;
-// var vacanciesSchema = mongoose.Schema({
-//     vacancy: String,
-//     text: String,
-//     sputnikId: String,
-//     tel: String,
-//     date: String
-// }, { versionKey: false });
-// var vacancy = mongoose.model('Vacancy', vacanciesSchema);
+var db = mongoose.connection;
+var vacanciesSchema = mongoose.Schema({
+    vse35Id:  Number,
+    vacancy: String,
+    text:   String,
+    price:   String,
+    priceCustom: String,
+    added:   String,
+    edited:   String,
+    author:   String,
+    tel:   String,
+    email:   String,
+    visitors:   String,
+    paymentPeriod:   String,
+    experience:   String,
+    education: String,
+    busyness:   String,
+    workSchedule:   String,
+    picture: String,
+    authorDetailName: String,
+    authorDetailId: Number
+
+}, { versionKey: false });
+var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
 // var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
 // waiter.vacCount = 0;
@@ -97,7 +111,7 @@ function getJobPage(callback) {
     })
 }
 
-function getPageById(id) {
+function getPageById(id, callback) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body));
@@ -109,9 +123,9 @@ function getPageById(id) {
             obj.text = $('.col1 .detail_text').text().trim();
             obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
 
-            var addedInfo = $('.added-info')["0"];
-            obj.added = addedInfo.children["3"].children["1"].children["0"].data;
-            var edited = addedInfo.children["5"].children["1"].children["0"].data;
+            var addedInfo = $('.added-info');
+            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+            var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
             if (edited != obj.added) {
                 obj.edited = edited;
             }
@@ -150,7 +164,7 @@ function getPageById(id) {
                 obj.email = valueRightBlock["2"].children["0"].data.trim();
             }
 
-            var infoBox = $('.added-info').find('li');
+            var infoBox = addedInfo.find('li');
             obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
 
             // Разбираем блок с контентом слева
@@ -170,7 +184,7 @@ function getPageById(id) {
                         obj.paymentPeriod = itemVal;
                         break;
                     case 'Опыт работы':
-                        obj.expirience = itemVal;
+                        obj.experience = itemVal;
                         break;
                     case 'Занятость':
                         obj.busyness = itemVal;
@@ -182,38 +196,11 @@ function getPageById(id) {
                         obj.education = itemVal;
                 }
             }
-
             console.log(obj);
-            var stop = 1;
 
-
-            // find if exist and save to db
-            vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-
-                // if not found then save to db
-                if (!id) {
-                    new vacancy(obj).save(function (err) {
-                        if (err) {
-                            console.log(err);
-                            mongoose.disconnect();
-                            process.exit(1);
-                        }
-                        else {
-                            waiter.vacAdded++;
-                            waiter.incrementAndCheck();
-                        }
-                    });
-                }
-                else {
-                    //waiter.incrementAndCheck();
-                }
-            });
-
+            if (callback) {
+                callback(obj);
+            }
         }
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
@@ -224,7 +211,6 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(803168);
 
 
 // function done() {
@@ -233,18 +219,58 @@ getPageById(803168);
 //     console.log(waiter.vacCount + ' vacancies checked and ' + waiter.vacAdded + ' new added to DB in ' + time / 1000 + ' sec.');
 // }
 
-// function run() {
-//     console.log('Crawler for sputnik started.');
-//     mongoose.connect('mongodb://localhost/work', function (err) {
-//         if (err) {
-//             console.log(err);
-//             process.exit(1);
-//         }
-//     });
+function run() {
+    console.log('Crawler for vse35 started.');
+    mongoose.connect('mongodb://localhost/vse35', function (err) {
+        if (err) {
+            console.log(err);
+            process.exit(1);
+        }
+    });
+
+    getPageById(803168, function (obj) {
+        //console.log(obj);
+        console.log('read ok');
+        saveToDb(obj);
+    });
+
 
 //     getPager(function (pagesCount) {
 //         pagesLoop(pagesCount);
 //     });
-// }
 
-// run();
+}
+
+function saveToDb(obj) {
+
+    // find if exist and save to db
+    vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+
+        // if not found then save to db
+        if (!id) {
+            new vacancy(obj).save(function (err) {
+                if (err) {
+                    console.log(err);
+                    //mongoose.disconnect();
+                    process.exit(1);
+                }
+                else {
+                    console.log('added to db');
+                    //waiter.vacAdded++;
+                    //waiter.incrementAndCheck();
+                }
+            });
+        }
+        else {
+            console.log('already here.');
+            //waiter.incrementAndCheck();
+        }
+    });
+}
+
+run();
