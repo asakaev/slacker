@@ -105,7 +105,7 @@ function getPageById(id) {
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
-            obj.text = $('.col1 .detail_text').text().trim();
+            obj.text = $('.col1 .detail_text').text().trim().replace('\n', ' ');
             obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
 
             var addedInfo = $('.added-info')["0"];
@@ -209,7 +209,7 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(809006);
+getPageById(809218);
 //getPageById(809828);
 
 
