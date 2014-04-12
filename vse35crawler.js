@@ -1,6 +1,6 @@
 // vse35 crawler
-
 // Конвертация кодировки из 1251 в UTF8
+// TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
 
 // var start = new Date().getTime();
 
@@ -103,17 +103,45 @@ function getPageById(id) {
             var obj = {};
 
             // Основные поля без левого и правого списков
+            obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
             obj.text = $('.col1 .detail_text').text().trim();
             obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // rub and spaces cleanup
 
-            // Разбираем список с элементами слева
-            var name = $('.col1 .item_inner .item_name');
-            var value = $('.col1 .item_inner .item_value');
+            var addedInfo = $('.added-info')["0"];
+            obj.added = addedInfo.children["3"].children["1"].children["0"].data;
+            obj.edited = addedInfo.children["5"].children["1"].children["0"].data;
 
-            for (var i = 0; i < name.length; i++) {
-                var item = name[i].children["0"].data.trim();
-                var itemVal = value[i].children["0"].data.trim();
+            var picture = $('.preview-box')["0"];
+            if (picture) {
+                obj.picture = picture.children["1"].attribs.href;
+            }
+
+            var author = $('.author')["0"];
+            if (author) {
+                obj.author = author.children["0"].data.trim();
+            }
+
+            // Разбираем блок контактов справа
+            var nameRightBlock = $('.contact-box .field_name');
+            var valueRightBlock = $('.contact-box .field_value');
+
+            // Если больше одного элемента значит есть емейл
+            if (nameRightBlock.length == 1) {
+                obj.tel = valueRightBlock["1"].children["0"].data.trim();
+            }
+            else {
+                obj.tel = valueRightBlock["2"].children["0"].data.trim();
+                obj.email = valueRightBlock["3"].children["0"].data.trim();
+            }
+
+            // Разбираем блок с контентом слева
+            var nameLeftBlock = $('.col1 .item_inner .item_name');
+            var valueLeftBlock = $('.col1 .item_inner .item_value');
+
+            for (var i = 0; i < nameLeftBlock.length; i++) {
+                var item = nameLeftBlock[i].children["0"].data.trim();
+                var itemVal = valueLeftBlock[i].children["0"].data.trim();
                 switch (item) {
                     case 'Зарплата, р.':
                         obj.priceCustom = itemVal;
@@ -137,57 +165,6 @@ function getPageById(id) {
 
             console.log(obj);
             var a = 5;
-
-
-//
-
-//            var fieldValue = $('.field_value');
-//            var addedInfo = $('.added-info');
-//            var price = $('.price');
-//            var params = $('.item_inner .item_value');
-//            var picture = $('.preview-box');
-//            var author = $('.author');
-//            var tel = $('.field_value').filter(function() { return $(this).css("display") == "none" });
-//
-//
-//            // взять отдельно блок слева и справа
-//            // форичем пройтись. если называется "зп" значит подДив пишем в объект
-//            // иначе никак. они не именованы. переписать всё вообще.
-//
-//            var obj = {};
-//            obj.vacancy = vacName["0"].children["0"].data;
-//
-//            if (author.length != 0) {
-//                obj.author = author["0"].children["0"].data;
-//            }
-//
-//            if (fieldValue["3"]) {
-//                obj.email = fieldValue["3"].children["0"].data;
-//            }
-//
-//            obj.tel = tel["0"].children["0"].data;
-//            obj.tel = obj.tel.replace(' ', '');
-//            obj.vse35Id = id;
-//            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
-//            obj.edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
-//            obj.price = price["0"].children["1"].data;
-//            obj.price = obj.price.substring(1, obj.price.length - 3);
-
-//
-//            if (params["5"]) {
-//                obj.fulltime = params["5"].children["0"].data;
-//                obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
-//            }
-//
-//            obj.education = params["2"].children["0"].data;
-//            obj.education = obj.education.substring(23, obj.education.length - 18);
-
-//            if (picture["0"]) {
-//                obj.picture = 'http://vse35.ru' + picture["0"].children["1"].attribs.href;
-//            }
-
-
-//            console.log(obj);
 
 
             // find if exist and save to db
