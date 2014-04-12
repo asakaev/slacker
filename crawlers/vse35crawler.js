@@ -123,17 +123,20 @@ function getPageById(id, callback) {
             obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
             obj.text = $('.col1 .detail_text').text().trim();
-            obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
+
+            obj.price = $('.price')["0"];
+            if (obj.price) {
+                obj.price = obj.price.children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
+            }
 
             var addedInfo = $('.added-info');
             obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
-            obj.added = convertDate(obj.added);
-            //console.log(obj.added);
 
             var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
             if (edited != obj.added) {
                 obj.edited = convertDate(edited);
             }
+            obj.added = convertDate(obj.added);
 
             var picture = $('.preview-box')["0"];
             if (picture) {
@@ -204,10 +207,22 @@ function getPageById(id, callback) {
             //console.log(obj);
             saveToDb(obj);
 
-            if (callback) {
-                callback(obj);
+            var next = $('.next');
+            var nextId;
+
+            // Если дальше ничего нет
+            if (next.length == 0) {
+                nextId = 0;
+            } else {
+                nextId = next["0"].children["0"].attribs.href;
+                nextId = parseInt(nextId.substring(nextId.length - 6, nextId.length));
+                console.log('Next is ' + nextId);
             }
-        }
+
+            if (callback) {
+                callback(nextId);
+            }
+        } // if connect success end
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
             //mongoose.disconnect();
@@ -225,17 +240,6 @@ function getPageById(id, callback) {
 //     console.log(waiter.vacCount + ' vacancies checked and ' + waiter.vacAdded + ' new added to DB in ' + time / 1000 + ' sec.');
 // }
 
-function run() {
-    console.log('Crawler for vse35 started.');
-    mongoose.connect('mongodb://localhost/vse35', function (err) {
-        if (err) {
-            console.log(err);
-            process.exit(1);
-        }
-    });
-    getJobPage();
-}
-
 function saveToDb(obj) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
@@ -244,6 +248,8 @@ function saveToDb(obj) {
             //mongoose.disconnect();
             process.exit(1);
         }
+
+        console.log('DB ID: ' + id);
 
         // if not found then save to db
         if (!id) {
@@ -275,4 +281,45 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
+var globCount = 0;
+
+function chainer(idStart) {
+    getPageById(idStart, function (next) {
+        globCount++;
+        console.log('Count: ' + globCount + ', next: ' + next);
+
+        if ((next != 0) && (globCount < 10)) {
+            console.log('inside');
+            chainer(next);
+        }
+        console.log('ok');
+    });
+}
+
+function run() {
+    console.log('Crawler for vse35 started.');
+    mongoose.connect('mongodb://localhost/vse35', function (err) {
+        if (err) {
+            console.log(err);
+            process.exit(1);
+        }
+    });
+    //getJobPage();
+    //getPageById(809890);
+    //chainer(809890);
+}
+
 run();
+chainer(809890);
+//console.log('test: ' + getPageById(809890));
+
+//function recur(input) {
+//    var a = input + 1;
+//    console.log(a);
+//
+//    if (a < 30) {
+//        recur(a);
+//    }
+//}
+//
+//recur(1);
