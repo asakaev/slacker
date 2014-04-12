@@ -25,7 +25,7 @@ fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
         process.exit(1);
     }
     lastAddedVacancyId = data;
-    console.log(lastAddedVacancyId);
+    console.log('Last added: ' + lastAddedVacancyId);
 });
 
 var db = mongoose.connection;
@@ -33,14 +33,14 @@ var vacanciesSchema = mongoose.Schema({
     vse35Id: Number,
     vacancy: String,
     text: String,
-    price: String,
+    price: Number,
     priceCustom: String,
-    added: String,
-    edited: String,
+    added: Date,
+    edited: Date,
     author: String,
     tel: String,
     email: String,
-    visitors: String,
+    visitors: Number,
     paymentPeriod: String,
     experience: String,
     education: String,
@@ -49,7 +49,6 @@ var vacanciesSchema = mongoose.Schema({
     picture: String,
     authorDetailName: String,
     authorDetailId: Number
-
 }, { versionKey: false });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
@@ -61,7 +60,7 @@ var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 //     if (this.vacCount == ++this.vacChecked) done();
 // };
 
-var categoriesCount;
+//var categoriesCount;
 var totalVacancies = 0;
 
 function getJobPage(callback) {
@@ -95,7 +94,9 @@ function getJobPage(callback) {
                 id = parseInt(id.substring(21, id.length));
                 console.log(index + ': ' + id);
 
+
                 if (id == lastAddedVacancyId) {
+                    console.log('Stopped cause this id already added. * Kind of lol.');
                     break;
                 }
 
@@ -105,6 +106,7 @@ function getJobPage(callback) {
                 }
                 else {
                     // everyday code fx
+                    getPageById(id);
                 }
             }
         }
@@ -117,8 +119,6 @@ function getPageById(id, callback) {
             $ = cheerio.load(translator.convert(body).toString());
             var obj = {};
 
-            var stop = 1;
-
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
             obj.vacancy = $('.header-desc-ad-box .title').text();
@@ -127,9 +127,12 @@ function getPageById(id, callback) {
 
             var addedInfo = $('.added-info');
             obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+            obj.added = convertDate(obj.added);
+            //console.log(obj.added);
+
             var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
             if (edited != obj.added) {
-                obj.edited = edited;
+                obj.edited = convertDate(edited);
             }
 
             var picture = $('.preview-box')["0"];
@@ -198,7 +201,8 @@ function getPageById(id, callback) {
                         obj.education = itemVal;
                 }
             }
-            console.log(obj);
+            //console.log(obj);
+            saveToDb(obj);
 
             if (callback) {
                 callback(obj);
@@ -229,21 +233,10 @@ function run() {
             process.exit(1);
         }
     });
-
-    getPageById(803168, function (obj) {
-        console.log('read ok');
-        saveToDb(obj);
-    });
-
-
-//     getPager(function (pagesCount) {
-//         pagesLoop(pagesCount);
-//     });
-
+    getJobPage();
 }
 
 function saveToDb(obj) {
-
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -261,17 +254,25 @@ function saveToDb(obj) {
                     process.exit(1);
                 }
                 else {
-                    console.log('added to db');
+                    console.log('Added to db: ' + obj.vse35Id);
                     //waiter.vacAdded++;
                     //waiter.incrementAndCheck();
                 }
             });
         }
         else {
-            console.log('already here.');
+            console.log('Already here id: ' + obj.vse35Id);
             //waiter.incrementAndCheck();
         }
     });
+}
+
+function convertDate(strInput) {
+    // dd/mm/yyyy
+    var dt = parseInt(strInput.substring(0, 2));
+    var mon = parseInt(strInput.substring(3, 5));
+    var yr = parseInt(strInput.substring(6, 10));
+    return new Date(yr, mon - 1, dt);
 }
 
 run();
