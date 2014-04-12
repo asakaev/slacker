@@ -147,7 +147,9 @@ function getPageById(id) {
                 var itemVal = valueLeftBlock[i].children["0"].data.trim();
                 switch (item) {
                     case 'Зарплата, р.':
-                        obj.priceCustom = itemVal;
+                        if (itemVal != obj.price) {
+                            obj.priceCustom = itemVal;
+                        }
                         break;
                     case 'Период оплаты':
                         obj.paymentPeriod = itemVal;
@@ -207,7 +209,7 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(799565);
+getPageById(809006);
 //getPageById(809828);
 
 
