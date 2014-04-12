@@ -1,5 +1,7 @@
 // vse35 crawler
 
+// Конвертация кодировки из 1251 в UTF8
+
 // var start = new Date().getTime();
 
 var request = require('request');
@@ -98,65 +100,95 @@ function getPageById(id) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body));
-            var vacName = $('.header-desc-ad-box .title');
-            var fieldValue = $('.field_value');
-            var addedInfo = $('.added-info');
-            var price = $('.price');
-            var params = $('.item_inner .item_value');
-            var picture = $('.preview-box');
-            var author = $('.author');
-            var tel = $('.field_value').filter(function() { return $(this).css("display") == "none" });
-
-
-            // взять отдельно блок слева и справа
-            // форичем пройтись. если называется "зп" значит подДив пишем в объект
-            // иначе никак. они не именованы. переписать всё вообще.
-
             var obj = {};
-            obj.vacancy = vacName["0"].children["0"].data;
 
-            if (author.length != 0) {
-                obj.author = author["0"].children["0"].data;
+            // Основные поля без левого и правого списков
+            obj.vacancy = $('.header-desc-ad-box .title').text();
+            obj.text = $('.col1 .detail_text').text().trim();
+            obj.price = $('.price')["0"].children["1"].data.replace('р.', '').replace(/ /g, ''); // rub and spaces cleanup
+
+            // Разбираем список с элементами слева
+            var name = $('.col1 .item_inner .item_name');
+            var value = $('.col1 .item_inner .item_value');
+
+            for (var i = 0; i < name.length; i++) {
+                var item = name[i].children["0"].data.trim();
+                var itemVal = value[i].children["0"].data.trim();
+                switch (item) {
+                    case 'Зарплата, р.':
+                        obj.priceCustom = itemVal;
+                        break;
+                    case 'Период оплаты':
+                        obj.paymentPeriod = itemVal;
+                        break;
+                    case 'Опыт работы':
+                        obj.expirience = itemVal;
+                        break;
+                    case 'Занятость':
+                        obj.busyness = itemVal;
+                        break;
+                    case 'График':
+                        obj.workSchedule = itemVal;
+                        break;
+                    case 'Образование':
+                        obj.education = itemVal;
+                }
             }
-
-            if (fieldValue["3"]) {
-                obj.email = fieldValue["3"].children["0"].data;
-            }
-
-            obj.tel = tel["0"].children["0"].data;
-            obj.tel = obj.tel.replace(' ', '');
-            obj.vse35Id = id;
-            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
-            obj.edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
-            obj.price = price["0"].children["1"].data;
-            obj.price = obj.price.substring(1, obj.price.length - 3);
-            obj.priceCustom = params["1"].children["0"].data;
-            obj.priceCustom = obj.priceCustom.substring(22, obj.priceCustom.length - 11);
-
-            if (params["5"]) {
-                obj.fulltime = params["5"].children["0"].data;
-                obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
-            }
-
-            obj.education = params["2"].children["0"].data;
-            obj.education = obj.education.substring(23, obj.education.length - 18);
-
-            obj.experience = params["3"].children["0"].data;
-            obj.experience = obj.experience.substring(23, obj.experience.length - 18);
-
-            obj.busyness = params["4"].children["0"].data;
-            obj.busyness = obj.busyness.substring(23, obj.busyness.length - 18);
-
-            obj.text = $('.detail_text').text();
-            obj.text = obj.text.replace('\n', '');
-
-            if (picture["0"]) {
-                obj.picture = 'http://vse35.ru' + picture["0"].children["1"].attribs.href;
-            }
-
 
             console.log(obj);
             var a = 5;
+
+
+//
+
+//            var fieldValue = $('.field_value');
+//            var addedInfo = $('.added-info');
+//            var price = $('.price');
+//            var params = $('.item_inner .item_value');
+//            var picture = $('.preview-box');
+//            var author = $('.author');
+//            var tel = $('.field_value').filter(function() { return $(this).css("display") == "none" });
+//
+//
+//            // взять отдельно блок слева и справа
+//            // форичем пройтись. если называется "зп" значит подДив пишем в объект
+//            // иначе никак. они не именованы. переписать всё вообще.
+//
+//            var obj = {};
+//            obj.vacancy = vacName["0"].children["0"].data;
+//
+//            if (author.length != 0) {
+//                obj.author = author["0"].children["0"].data;
+//            }
+//
+//            if (fieldValue["3"]) {
+//                obj.email = fieldValue["3"].children["0"].data;
+//            }
+//
+//            obj.tel = tel["0"].children["0"].data;
+//            obj.tel = obj.tel.replace(' ', '');
+//            obj.vse35Id = id;
+//            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+//            obj.edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
+//            obj.price = price["0"].children["1"].data;
+//            obj.price = obj.price.substring(1, obj.price.length - 3);
+
+//
+//            if (params["5"]) {
+//                obj.fulltime = params["5"].children["0"].data;
+//                obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
+//            }
+//
+//            obj.education = params["2"].children["0"].data;
+//            obj.education = obj.education.substring(23, obj.education.length - 18);
+
+//            if (picture["0"]) {
+//                obj.picture = 'http://vse35.ru' + picture["0"].children["1"].attribs.href;
+//            }
+
+
+//            console.log(obj);
+
 
             // find if exist and save to db
             vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
@@ -195,8 +227,8 @@ function getPageById(id) {
 }
 
 //getJobPage();
-//getPageById(799565);
-getPageById(809828);
+getPageById(799565);
+//getPageById(809828);
 
 
 // function done() {
