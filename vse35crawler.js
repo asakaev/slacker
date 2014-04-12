@@ -2,27 +2,27 @@
 
 var request = require('request');
 var cheerio = require('cheerio');
-
 var Iconv = require('iconv').Iconv;
 var fromEnc = 'cp1251';
 var toEnc = 'utf-8';
 var translator = new Iconv(fromEnc, toEnc);
 
 //var mongoose = require('mongoose');
-//var fs = require('fs');
+var fs = require('fs');
 
 // var sputnikLastUpdate;
 // var date;
 
-// // get last sputnik website update
-// fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
-//     if (err) {
-//         console.log(err);
-//         mongoose.disconnect();
-//         process.exit(1);
-//     }
-//     sputnikLastUpdate = data;
-// });
+var lastAddedVacancyId;
+fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
+    if (err) {
+        console.log(err);
+        //mongoose.disconnect();
+        process.exit(1);
+    }
+    lastAddedVacancyId = data;
+    console.log(lastAddedVacancyId);
+});
 
 // var db = mongoose.connection;
 // var vacanciesSchema = mongoose.Schema({
@@ -44,7 +44,6 @@ var translator = new Iconv(fromEnc, toEnc);
 
 var categoriesCount;
 var totalVacancies = 0;
-var lastAddedVacancyId = 0; // тут будет браться id вакансии которую в прошлый раз добавили
 
 function getJobPage(callback) {
     request({ url: 'http://vse35.ru/job/', encoding: null }, function (error, response, body) {
@@ -53,67 +52,45 @@ function getJobPage(callback) {
 
             var categories = $('.st-cats-list.two.job .cat');
             categoriesCount = categories.length;
-            console.log('Cats count: ' + categoriesCount);
+            console.log('Categories count: ' + categoriesCount);
 
             // считаем количество всех вакансий
             categories.each(function (index) {
                 var count = categories[index].children[1].data;
-                count = parseInt( count.substring(2, count.length - 1) );
+                count = parseInt(count.substring(2, count.length - 1));
                 totalVacancies += count;
             });
-            console.log('Total vacs: ' + totalVacancies);
+            console.log('Total vacancies: ' + totalVacancies);
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
             var top15count = top15.length;
 
-            if (top15count != 15) { console.log('WRN: Top 15 structure is changed!'); }
+            if (top15count != 15) {
+                console.log('WRN: Top 15 structure is changed!');
+            }
 
             var index;
             for (index = 0; index < top15count; index++) {
                 var id = top15[index].children["1"].children["0"].attribs.href;
-                id = parseInt( id.substring(21, id.length) )
-                console.log(id);
+                id = parseInt(id.substring(21, id.length))
+                console.log(index + ': ' + id);
+
+                if (id == lastAddedVacancyId) {
+                    break;
+                }
+
+                // если последний элемент
+                if (index == top15count - 1) {
+                    // chain fx if last
+                }
+                else {
+                    // everyday code fx
+                }
             }
-
-//            top15.each(function (index) {
-//                var id = top15[index].children["1"].children["0"].attribs.href;
-//                id = parseInt( id.substring(21, id.length) )
-//                console.log(id);
-//            });
-
-            var a = 5;
-
-            date = $('.dateBut')["1"].children["1"].children["0"].data;
-
-            if (date == sputnikLastUpdate) {
-                console.log('Last update was ' + date + ' and we already parsed it.');
-                mongoose.disconnect();
-                process.exit(1);
-            }
-            else {
-                fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
-                    if (err) {
-                        console.log(err);
-                        mongoose.disconnect();
-                        process.exit(1);
-                    }
-                });
-            }
-
-            var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
-            pagesCount = parseInt(pagesCount.replace('?p=', ''));
-            waiter.vacCount = $('.countItemsInCategory')["0"].children["0"].data;
-            waiter.vacCount = parseInt(waiter.vacCount.substring(22, waiter.vacCount.length - 22));
-            callback(pagesCount);
-        }
-        else {
-            console.log('Cannot get Sputnik pager.');
-            mongoose.disconnect();
-            process.exit(1);
         }
     })
-}
+};
 
 getJobPage();
 
