@@ -1,6 +1,7 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8
 // TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
+// TODO: похоже только полный перебор. иначе не понятно когда обновлялось послендий раз
 
 // var start = new Date().getTime();
 
@@ -77,7 +78,7 @@ function getJobPage(callback) {
             var index;
             for (index = 0; index < top15count; index++) {
                 var id = top15[index].children["1"].children["0"].attribs.href;
-                id = parseInt(id.substring(21, id.length))
+                id = parseInt(id.substring(21, id.length));
                 console.log(index + ': ' + id);
 
                 if (id == lastAddedVacancyId) {
@@ -94,7 +95,7 @@ function getJobPage(callback) {
             }
         }
     })
-};
+}
 
 function getPageById(id) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
@@ -125,10 +126,16 @@ function getPageById(id) {
                 obj.author = author.children["0"].data.trim();
             }
 
+            var authorDetail = $('.contact-box .title')["0"];
+            if (authorDetail) {
+                obj.authorDetailName = authorDetail.children["0"].children["0"].data;
+                var tmp = authorDetail.children["0"].attribs.href;
+                obj.authorDetailId = tmp.substring(tmp.length - 6, tmp.length);
+            }
+
             // Разбираем блок контактов справа
             var contactsCount = $('.contact-box .field_name').length;
             var valueRightBlock = $('.contact-box .field_value');
-            console.log(valueRightBlock);
 
             if (author) {
                 valueRightBlock.splice(0, 1); // если автор есть то выкидываем, иначе мешает с телефоном/емейлом
@@ -139,8 +146,8 @@ function getPageById(id) {
                 obj.tel = valueRightBlock["1"].children["0"].data.trim();
             }
             else {
-                obj.tel = valueRightBlock["2"].children["0"].data.trim();
-                obj.email = valueRightBlock["3"].children["0"].data.trim();
+                obj.tel = valueRightBlock["1"].children["0"].data.trim();
+                obj.email = valueRightBlock["2"].children["0"].data.trim();
             }
 
             // Разбираем блок с контентом слева
@@ -174,7 +181,7 @@ function getPageById(id) {
             }
 
             console.log(obj);
-            var a = 5;
+            var stop = 1;
 
 
             // find if exist and save to db
@@ -214,7 +221,7 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(808906);
+getPageById(809828);
 //getPageById(809828);
 
 
