@@ -3,7 +3,7 @@
 // TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
 // TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
 
-// var start = new Date().getTime();
+var start = new Date().getTime();
 
 var request = require('request');
 var cheerio = require('cheerio');
@@ -62,8 +62,10 @@ var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
 //var categoriesCount;
 var totalVacancies = 0;
+var globCount = 0;
 
-function getJobPage(callback) {
+
+function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
@@ -88,27 +90,37 @@ function getJobPage(callback) {
                 console.log('WRN: Top 15 structure is changed!');
             }
 
-            var index;
-            for (index = 0; index < top15count; index++) {
-                var id = top15[index].children["1"].children["0"].attribs.href;
-                id = parseInt(id.substring(21, id.length));
-                console.log(index + ': ' + id);
+            var topId = top15["0"].children["1"].children["0"].attribs.href;
+            topId = parseInt(topId.substring(topId.length - 6, topId.length));
 
-
-                if (id == lastAddedVacancyId) {
-                    console.log('Stopped cause this id already added. * Kind of lol.');
-                    break;
-                }
-
-                // если последний элемент
-                if (index == top15count - 1) {
-                    // chain fx if last
-                }
-                else {
-                    // everyday code fx
-                    getPageById(id);
-                }
+            // если вызываем с колбеком, то передаем туда id верхней вакансии
+            if (callback) {
+                callback(topId);
             }
+
+
+
+            // TODO: умная штука которая сама понимает что 14 можно параллельно а на 15 запустить цепочку
+//            var index;
+//            for (index = 0; index < top15count; index++) {
+//                var id = top15[index].children["1"].children["0"].attribs.href;
+//                id = parseInt(id.substring(21, id.length));
+//                console.log(index + ': ' + id);
+//
+////                if (id == lastAddedVacancyId) {
+////                    console.log('Stopped cause this id already added. * Kind of lol.');
+////                    break;
+////                }
+//
+//                // если последний элемент
+//                if (index == top15count - 1) {
+//                    // chain fx if last
+//                }
+//                else {
+//                    // everyday code fx
+//                    //getPageById(id);
+//                }
+//            }
         }
     })
 }
@@ -208,15 +220,13 @@ function getPageById(id, callback) {
             saveToDb(obj);
 
             var next = $('.next');
-            var nextId;
+            var nextId = 0;
 
-            // Если дальше ничего нет
-            if (next.length == 0) {
-                nextId = 0;
-            } else {
+            // Если дальше есть страница
+            if (next.length != 0) {
                 nextId = next["0"].children["0"].attribs.href;
                 nextId = parseInt(nextId.substring(nextId.length - 6, nextId.length));
-                console.log('Next is ' + nextId);
+                //console.log('Next is ' + nextId);
             }
 
             if (callback) {
@@ -231,15 +241,6 @@ function getPageById(id, callback) {
     });
 }
 
-//getJobPage();
-
-
-// function done() {
-//     mongoose.disconnect();
-//     var time = new Date().getTime() - start;
-//     console.log(waiter.vacCount + ' vacancies checked and ' + waiter.vacAdded + ' new added to DB in ' + time / 1000 + ' sec.');
-// }
-
 function saveToDb(obj) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
@@ -248,8 +249,6 @@ function saveToDb(obj) {
             //mongoose.disconnect();
             process.exit(1);
         }
-
-        console.log('DB ID: ' + id);
 
         // if not found then save to db
         if (!id) {
@@ -281,19 +280,25 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
-var globCount = 0;
-
 function chainer(idStart) {
     getPageById(idStart, function (next) {
         globCount++;
         console.log('Count: ' + globCount + ', next: ' + next);
 
-        if ((next != 0) && (globCount < 10)) {
-            console.log('inside');
+        if ((next != 0) && (globCount < 20)) {
             chainer(next);
         }
-        console.log('ok');
+        else {
+            console.log('Ended and ' + globCount + ' pages got.');
+            done();
+        }
     });
+}
+
+function done() {
+     //mongoose.disconnect();
+     var time = new Date().getTime() - start;
+     console.log('Working time: ' + time / 1000 + ' sec.');
 }
 
 function run() {
@@ -304,22 +309,10 @@ function run() {
             process.exit(1);
         }
     });
-    //getJobPage();
-    //getPageById(809890);
-    //chainer(809890);
+    getMainPage(function (id) {
+        console.log('Got id: ' + id + ' from main page and starting chainer.');
+        chainer(id);
+    });
 }
 
 run();
-chainer(809890);
-//console.log('test: ' + getPageById(809890));
-
-//function recur(input) {
-//    var a = input + 1;
-//    console.log(a);
-//
-//    if (a < 30) {
-//        recur(a);
-//    }
-//}
-//
-//recur(1);
