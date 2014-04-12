@@ -1,7 +1,7 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8
 // TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
-// TODO: похоже только полный перебор. иначе не понятно когда обновлялось послендий раз
+// TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
 
 // var start = new Date().getTime();
 
@@ -150,6 +150,9 @@ function getPageById(id) {
                 obj.email = valueRightBlock["2"].children["0"].data.trim();
             }
 
+            var infoBox = $('.added-info').find('li');
+            obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
+
             // Разбираем блок с контентом слева
             var nameLeftBlock = $('.col1 .item_inner .item_name');
             var valueLeftBlock = $('.col1 .item_inner .item_value');
@@ -221,8 +224,7 @@ function getPageById(id) {
 }
 
 //getJobPage();
-getPageById(809828);
-//getPageById(809828);
+getPageById(803168);
 
 
 // function done() {
