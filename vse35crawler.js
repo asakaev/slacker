@@ -103,15 +103,28 @@ function getPageById(id) {
             var addedInfo = $('.added-info');
             var price = $('.price');
             var params = $('.item_inner .item_value');
-            var text = $('.detail_text');
+            var picture = $('.preview-box');
+            var author = $('.author');
+            var tel = $('.field_value').filter(function() { return $(this).css("display") == "none" });
+
+
+            // взять отдельно блок слева и справа
+            // форичем пройтись. если называется "зп" значит подДив пишем в объект
+            // иначе никак. они не именованы. переписать всё вообще.
 
             var obj = {};
             obj.vacancy = vacName["0"].children["0"].data;
-            obj.author = fieldValue["0"].children["0"].data;
-            obj.author = obj.author.substring(2);
-            obj.email = fieldValue["3"].children["0"].data;
-            obj.tel = fieldValue["2"].children["0"].data;
-            obj.tel = obj.tel.substring(1);
+
+            if (author.length != 0) {
+                obj.author = author["0"].children["0"].data;
+            }
+
+            if (fieldValue["3"]) {
+                obj.email = fieldValue["3"].children["0"].data;
+            }
+
+            obj.tel = tel["0"].children["0"].data;
+            obj.tel = obj.tel.replace(' ', '');
             obj.vse35Id = id;
             obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
             obj.edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
@@ -119,13 +132,28 @@ function getPageById(id) {
             obj.price = obj.price.substring(1, obj.price.length - 3);
             obj.priceCustom = params["1"].children["0"].data;
             obj.priceCustom = obj.priceCustom.substring(22, obj.priceCustom.length - 11);
-            obj.fulltime = params["5"].children["0"].data;
-            obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
-            obj.busyness = params["4"].children["0"].data;
-            obj.busyness = obj.busyness.substring(23, obj.busyness.length - 18);
+
+            if (params["5"]) {
+                obj.fulltime = params["5"].children["0"].data;
+                obj.fulltime = obj.fulltime.substring(23, obj.fulltime.length - 18);
+            }
+
+            obj.education = params["2"].children["0"].data;
+            obj.education = obj.education.substring(23, obj.education.length - 18);
+
             obj.experience = params["3"].children["0"].data;
             obj.experience = obj.experience.substring(23, obj.experience.length - 18);
-            obj.text = text["0"].children["0"].data;
+
+            obj.busyness = params["4"].children["0"].data;
+            obj.busyness = obj.busyness.substring(23, obj.busyness.length - 18);
+
+            obj.text = $('.detail_text').text();
+            obj.text = obj.text.replace('\n', '');
+
+            if (picture["0"]) {
+                obj.picture = 'http://vse35.ru' + picture["0"].children["1"].attribs.href;
+            }
+
 
             console.log(obj);
             var a = 5;
@@ -167,7 +195,9 @@ function getPageById(id) {
 }
 
 //getJobPage();
+//getPageById(799565);
 getPageById(809828);
+
 
 // function done() {
 //     mongoose.disconnect();
