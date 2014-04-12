@@ -66,6 +66,10 @@ function getPager(callback) {
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
             waiter.vacCount = $('.countItemsInCategory')["0"].children["0"].data;
             waiter.vacCount = parseInt(waiter.vacCount.substring(22, waiter.vacCount.length - 22));
+
+            var nodes = $('.itemOb');
+            if (nodes.length != 20) { console.log('WRN: 20 vacancies on page structure is changed!'); }
+
             callback(pagesCount);
         }
         else {
