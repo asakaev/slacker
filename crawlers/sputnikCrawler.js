@@ -10,11 +10,12 @@ var start = new Date().getTime();
 var request = require('request');
 var cheerio = require('cheerio');
 var mongoose = require('mongoose');
-var fs = require('fs');
+var colors = require('colors');
 
 var extraFromDb;
 var date;
 var issue;
+var dateFromDb;
 
 var db = mongoose.connection;
 var sputnikSchema = mongoose.Schema({
@@ -34,18 +35,17 @@ var extraSchema = mongoose.Schema({
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
 
-var dateFromDb;
-
-
-var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
-waiter.vacCount = 0;
-waiter.vacChecked = 0;
-waiter.vacAdded = 0;
-waiter.incrementAndCheck = function () {
-    if (this.vacCount == ++this.vacChecked) done();
+var keeper = {}; // Wait when all vacancies from sputnik saved (or checked if exist) to DB
+keeper.vacCountOnPager = 0;
+keeper.vacChecked = 0;
+keeper.vacAddedToDb = 0;
+keeper.incrementAndCheck = function () {
+    if (this.vacCountOnPager == ++this.vacChecked) {
+        done();
+    }
 };
 
-function getPager(callback) {
+function getPagerWithDate(callback) {
     request('http://www.sputnik-cher.ru/301/', function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
@@ -53,12 +53,10 @@ function getPager(callback) {
             date = convertDate(date);
 
             if (date.toString() == dateFromDb) {
-                console.log('Last update was ' + date + ' and we already parsed it.');
-                //shutDownAndWrite();
-                process.exit(1);
+                shutDownWithMsg('[OK]'.green + ' Last update was ' + date + ' and we already parsed it.');
             }
             else {
-                // сохраняем новую дату в базу перед отключением
+                // Remove old date and add new to DB
                 if (extraFromDb) {
                     extraFromDb.remove();
                 }
@@ -72,93 +70,80 @@ function getPager(callback) {
 
             var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
-            waiter.vacCount = $('.countItemsInCategory')["0"].children["0"].data;
-            waiter.vacCount = parseInt(waiter.vacCount.substring(22, waiter.vacCount.length - 22));
+            keeper.vacCountOnPager = $('.countItemsInCategory')["0"].children["0"].data;
+            keeper.vacCountOnPager = parseInt(keeper.vacCountOnPager.substring(22, keeper.vacCountOnPager.length - 22));
 
             var nodes = $('.itemOb');
             if (nodes.length != 20) {
-                console.log('WRN: 20 vacancies on page structure is changed!');
+                shutDownWithMsg('[ERR]'.red + ' 20 vacancies on page structure is changed!');
             }
-
             callback(pagesCount);
         }
         else {
-            console.log('Cannot get Sputnik pager.');
-            shutDownAndWrite();
+            shutDownWithMsg('[ERR]'.red + ' Cannot get Sputnik pager.');
         }
     })
 }
 
-function getContent(pageNum) {
+function getAndParsePage(pageNum) {
     request('http://www.sputnik-cher.ru/301/?p=' + pageNum, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
             var nodes = $('.itemOb');
-            nodes.each(function (index) {
+            nodes.each(function (i) {
                 var obj = {};
-                obj.vacancy = nodes[index].children["3"].children["0"].data;
-                var text = nodes[index].children["4"].data;
-                obj.text = text.trim();
-                obj.idSputnik = nodes[index].children["1"].attribs.name;
-                if (nodes[index].children["5"].children["0"] !== undefined) {
-                    obj.tel = nodes[index].children["5"].children["0"].data;
+                obj.vacancy = nodes[i].children["3"].children["0"].data;
+                obj.text = nodes[i].children["4"].data.trim();
+                obj.idSputnik = nodes[i].children["1"].attribs.name;
+                if (nodes[i].children["5"].children["0"] !== undefined) {
+                    obj.tel = nodes[i].children["5"].children["0"].data;
                 }
                 obj.added = date;
                 obj.issue = issue;
 
-                // find if exist and save to db
+                // Find if exist and save to DB
                 vacancy.findOne({'idSputnik': obj.idSputnik}, function (err, id) {
                     if (err) {
-                        console.log(err);
-                        shutDownAndWrite(0);
+                        shutDownWithMsg(err);
                     }
 
-                    // if not found then save to db
+                    // If not found then save to DB
                     if (!id) {
                         new vacancy(obj).save(function (err) {
                             if (err) {
-                                console.log(err);
-                                shutDownAndWrite(0);
+                                shutDownWithMsg(err);
                             }
                             else {
-                                waiter.vacAdded++;
-                                waiter.incrementAndCheck();
+                                keeper.vacAddedToDb++;
+                                keeper.incrementAndCheck();
                             }
                         });
                     }
                     else {
-                        waiter.incrementAndCheck();
+                        keeper.incrementAndCheck();
                     }
                 });
-
-            }); // end of DOM traversal
+            }); // end of each div on page parse
         }
         else {
-            console.log('Cannot get page ' + pageNum + ', stop now.');
-            shutDownAndWrite(0);
+            console.log('[ERR]'.red + ' Cannot get page ' + pageNum + ', stop now.');
+            shutDownWithMsg();
         }
     });
 }
 
 function pagesLoop(pages) {
     for (var i = 1; i <= pages; i++) {
-        getContent(i);
+        getAndParsePage(i);
     }
 }
 
-function done() {
-    mongoose.disconnect();
-    var time = new Date().getTime() - start;
-    console.log(waiter.vacCount + ' vacancies checked and ' + waiter.vacAdded + ' new added to DB in ' + time / 1000 + ' sec.');
-}
-
 function convertDate(strInput) {
-    // 5 марта 2008
-    var splitted = strInput.split(' ');
+    var splitted = strInput.split(' '); // 5 марта 2008
 
-    var dt = parseInt(splitted["0"]);
+    var day = parseInt(splitted["0"]);
     var mon;
-    var yr = parseInt(splitted["2"]);
+    var year = parseInt(splitted["2"]);
 
     switch (splitted["1"]) {
         case 'января':
@@ -197,41 +182,55 @@ function convertDate(strInput) {
         case 'декабря':
             mon = 12;
     }
-    return new Date(yr, mon - 1, dt);
+    return new Date(year, mon - 1, day);
 }
 
-function shutDownAndWrite(arg) {
-    console.log('arg: ' + arg);
+function done() {
+    var time = (new Date().getTime() - start) / 1000;
+    var info;
+    if (keeper.vacCountOnPager == keeper.vacAddedToDb) {
+        info = '[OK]'.green + ' All ' + keeper.vacCountOnPager + ' vacancies checked and added to DB in ' + time + ' sec.';
+    }
+    else {
+        info = '[OK]'.green + ' ' + keeper.vacCountOnPager + ' vacancies checked and ' + keeper.vacAddedToDb + ' new added to DB in ' + time + ' sec.';
+    }
+    shutDownWithMsg(info);
+}
+
+function shutDownWithMsg(msg) {
+    if (msg) {
+        console.log(msg);
+    }
     mongoose.disconnect(function () {
         process.exit(1);
     });
 }
 
-function run() {
+function main() {
     console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
         if (err) {
-            shutDownAndWrite();
+            shutDownWithMsg(err);
         }
     });
 
     // get last sputnik website update
     extra.findOne({}, 'updatedSputnik', function (err, res) {
         if (err) {
-            console.log(err);
-            //shutDownAndWrite(0);
+            shutDownWithMsg(err);
         }
         extraFromDb = res;
 
+        // если в базе есть дата то записали её. иначе null
         if (extraFromDb) {
             dateFromDb = extraFromDb.updatedSputnik;
         }
 
         // берем главную страницу и смотрим с неё дату, номер выпуска и кол-во страниц для парсинга
-        getPager(function (pagesCount) {
+        getPagerWithDate(function (pagesCount) {
             pagesLoop(pagesCount);
         });
     });
 }
 
-run();
+main();
