@@ -24,14 +24,16 @@ fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
 });
 
 var db = mongoose.connection;
-var vacanciesSchema = mongoose.Schema({
+var sputnikSchema = mongoose.Schema({
     vacancy: String,
     text: String,
-    sputnikId: String,
+    sputnikId: Number,
     tel: String,
-    date: String
-}, { versionKey: false });
-var vacancy = mongoose.model('Vacancy', vacanciesSchema);
+    added: Date
+},{ versionKey: false,
+    collection: 'sputnik'});
+
+var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
 var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
 waiter.vacCount = 0;
@@ -61,6 +63,7 @@ function getPager(callback) {
                     }
                 });
             }
+            date = convertDate(date);
 
             var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
@@ -68,7 +71,9 @@ function getPager(callback) {
             waiter.vacCount = parseInt(waiter.vacCount.substring(22, waiter.vacCount.length - 22));
 
             var nodes = $('.itemOb');
-            if (nodes.length != 20) { console.log('WRN: 20 vacancies on page structure is changed!'); }
+            if (nodes.length != 20) {
+                console.log('WRN: 20 vacancies on page structure is changed!');
+            }
 
             callback(pagesCount);
         }
@@ -94,7 +99,7 @@ function getContent(pageNum) {
                 if (nodes[index].children["5"].children["0"] !== undefined) {
                     obj.tel = nodes[index].children["5"].children["0"].data;
                 }
-                obj.date = date;
+                obj.added = date;
 
                 // find if exist and save to db
                 vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
@@ -143,6 +148,54 @@ function done() {
     mongoose.disconnect();
     var time = new Date().getTime() - start;
     console.log(waiter.vacCount + ' vacancies checked and ' + waiter.vacAdded + ' new added to DB in ' + time / 1000 + ' sec.');
+}
+
+function convertDate(strInput) {
+    // 5 марта 2008
+    var splitted = strInput.split(' ');
+
+    var dt = parseInt(splitted["0"]);
+    var mon;
+    var yr = parseInt(splitted["2"]);
+
+    switch (splitted["1"]) {
+        case 'января':
+            mon = 1;
+            break;
+        case 'февраля':
+            mon = 2;
+            break;
+        case 'марта':
+            mon = 3;
+            break;
+        case 'апреля':
+            mon = 4;
+            break;
+        case 'мая':
+            mon = 5;
+            break;
+        case 'июня':
+            mon = 6;
+            break;
+        case 'июля':
+            mon = 7;
+            break;
+        case 'августа':
+            mon = 8;
+            break;
+        case 'сентября':
+            mon = 9;
+            break;
+        case 'октября':
+            mon = 10;
+            break;
+        case 'ноября':
+            mon = 11;
+            break;
+        case 'декабря':
+            mon = 12;
+    }
+    return new Date(yr, mon - 1, dt);
 }
 
 function run() {
