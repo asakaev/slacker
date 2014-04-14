@@ -1,7 +1,9 @@
 // Берем страницу с датой, кол-вом вакансий (899) и кол-вом страниц (45)
 // В цикле берем все страницы (45) и ищем на них дивы в которых нужный контент (от 1 до 20)
-// Каждое из объявлений сразу же добавляем в базу к себе, если такого ещё нет (проверка по sputnikId)
+// Каждое из объявлений сразу же добавляем в базу к себе, если такого ещё нет (проверка по idSputnik)
 // Как только все 899 попыток записать в базу выполнены — отключаемся, пишем результаты.
+
+// TODO: Нет полного собирания всех номеров к себе в базу. А надо бы для статистики, да и емейлы там могут быть
 
 var start = new Date().getTime();
 
@@ -28,11 +30,11 @@ var db = mongoose.connection;
 var sputnikSchema = mongoose.Schema({
     vacancy: String,
     text: String,
-    sputnikId: Number,
+    idSputnik: Number,
     tel: String,
     added: Date,
     issue: Number
-},{ versionKey: false,
+}, { versionKey: false,
     collection: 'sputnik'});
 
 var vacancy = mongoose.model('Vacancy', sputnikSchema);
@@ -53,17 +55,10 @@ function getPager(callback) {
 
             if (date == sputnikLastUpdate) {
                 console.log('Last update was ' + date + ' and we already parsed it.');
-                mongoose.disconnect();
-                process.exit(1);
+                shutDownAndWrite();
             }
             else {
-                fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
-                    if (err) {
-                        console.log(err);
-                        mongoose.disconnect();
-                        process.exit(1);
-                    }
-                });
+                writeToFile(date);
             }
             date = convertDate(date);
 
@@ -84,10 +79,22 @@ function getPager(callback) {
         }
         else {
             console.log('Cannot get Sputnik pager.');
-            mongoose.disconnect();
-            process.exit(1);
+            shutDownAndWrite();
         }
     })
+}
+
+function writeToFile(date, callback) {
+    fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
+        if (err) {
+            console.log(err);
+            shutDownAndWrite();
+        }
+
+        if (callback) {
+            callback();
+        }
+    });
 }
 
 function getContent(pageNum) {
@@ -100,7 +107,7 @@ function getContent(pageNum) {
                 obj.vacancy = nodes[index].children["3"].children["0"].data;
                 var text = nodes[index].children["4"].data;
                 obj.text = text.trim();
-                obj.sputnikId = nodes[index].children["1"].attribs.name;
+                obj.idSputnik = nodes[index].children["1"].attribs.name;
                 if (nodes[index].children["5"].children["0"] !== undefined) {
                     obj.tel = nodes[index].children["5"].children["0"].data;
                 }
@@ -108,11 +115,10 @@ function getContent(pageNum) {
                 obj.issue = issue;
 
                 // find if exist and save to db
-                vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
+                vacancy.findOne({'idSputnik': obj.idSputnik}, function (err, id) {
                     if (err) {
                         console.log(err);
-                        mongoose.disconnect();
-                        process.exit(1);
+                        shutDownAndWrite(0);
                     }
 
                     // if not found then save to db
@@ -120,8 +126,7 @@ function getContent(pageNum) {
                         new vacancy(obj).save(function (err) {
                             if (err) {
                                 console.log(err);
-                                mongoose.disconnect();
-                                process.exit(1);
+                                shutDownAndWrite(0);
                             }
                             else {
                                 waiter.vacAdded++;
@@ -138,10 +143,21 @@ function getContent(pageNum) {
         }
         else {
             console.log('Cannot get page ' + pageNum + ', stop now.');
-            mongoose.disconnect();
-            process.exit(1);
+            shutDownAndWrite(0);
         }
     });
+}
+
+function shutDownAndWrite(arg) {
+    mongoose.disconnect();
+    if (arg) {
+        writeToFile(arg, function () {
+            process.exit(1);
+        });
+    }
+    else {
+        process.exit(1);
+    }
 }
 
 function pagesLoop(pages) {
@@ -208,8 +224,7 @@ function run() {
     console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
         if (err) {
-            console.log(err);
-            process.exit(1);
+            shutDownAndWrite();
         }
     });
 
