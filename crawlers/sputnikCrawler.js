@@ -123,7 +123,7 @@ function getAndParsePage(pageNum) {
                         keeper.incrementAndCheck();
                     }
                 });
-            }); // end of each div on page parse
+            }); // End of each div on page parsing
         }
         else {
             console.log('[ERR]'.red + ' Cannot get page ' + pageNum + ', stop now.');
@@ -214,19 +214,19 @@ function main() {
         }
     });
 
-    // get last sputnik website update
+    // Get last Sputnik website update
     extra.findOne({}, 'updatedSputnik', function (err, res) {
         if (err) {
             shutDownWithMsg(err);
         }
         extraFromDb = res;
 
-        // если в базе есть дата то записали её. иначе null
+        // If there is last update Date in DB then use it, otherwise null
         if (extraFromDb) {
             dateFromDb = extraFromDb.updatedSputnik;
         }
 
-        // берем главную страницу и смотрим с неё дату, номер выпуска и кол-во страниц для парсинга
+        // Get main Sputnik page with pages count and Date then parse it
         getPagerWithDate(function (pagesCount) {
             pagesLoop(pagesCount);
         });
