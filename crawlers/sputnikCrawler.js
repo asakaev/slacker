@@ -12,6 +12,7 @@ var fs = require('fs');
 
 var sputnikLastUpdate;
 var date;
+var issue;
 
 // get last sputnik website update
 fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
@@ -29,7 +30,8 @@ var sputnikSchema = mongoose.Schema({
     text: String,
     sputnikId: Number,
     tel: String,
-    added: Date
+    added: Date,
+    issue: Number
 },{ versionKey: false,
     collection: 'sputnik'});
 
@@ -47,7 +49,7 @@ function getPager(callback) {
     request('http://www.sputnik-cher.ru/301/', function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
-            date = $('.dateBut')["1"].children["1"].children["0"].data;
+            date = $('.dateBut')["0"].children["1"].children["0"].data;
 
             if (date == sputnikLastUpdate) {
                 console.log('Last update was ' + date + ' and we already parsed it.');
@@ -64,6 +66,9 @@ function getPager(callback) {
                 });
             }
             date = convertDate(date);
+
+            issue = $('.butText')["0"].children["1"].children["0"].data;
+            issue = parseInt(issue.substring(1));
 
             var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
@@ -94,12 +99,13 @@ function getContent(pageNum) {
                 var obj = {};
                 obj.vacancy = nodes[index].children["3"].children["0"].data;
                 var text = nodes[index].children["4"].data;
-                obj.text = text.substring(1, text.length - 7);
+                obj.text = text.trim();
                 obj.sputnikId = nodes[index].children["1"].attribs.name;
                 if (nodes[index].children["5"].children["0"] !== undefined) {
                     obj.tel = nodes[index].children["5"].children["0"].data;
                 }
                 obj.added = date;
+                obj.issue = issue;
 
                 // find if exist and save to db
                 vacancy.findOne({'sputnikId': obj.sputnikId}, function (err, id) {
