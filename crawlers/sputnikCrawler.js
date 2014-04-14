@@ -12,19 +12,9 @@ var cheerio = require('cheerio');
 var mongoose = require('mongoose');
 var fs = require('fs');
 
-var sputnikLastUpdate;
+var extraFromDb;
 var date;
 var issue;
-
-// get last sputnik website update
-fs.readFile('sputnikLastUpdate.txt', 'utf-8', function read(err, data) {
-    if (err) {
-        console.log(err);
-        mongoose.disconnect();
-        process.exit(1);
-    }
-    sputnikLastUpdate = data;
-});
 
 var db = mongoose.connection;
 var sputnikSchema = mongoose.Schema({
@@ -36,8 +26,16 @@ var sputnikSchema = mongoose.Schema({
     issue: Number
 }, { versionKey: false,
     collection: 'sputnik'});
-
 var vacancy = mongoose.model('Vacancy', sputnikSchema);
+
+var extraSchema = mongoose.Schema({
+    updatedSputnik: Date
+}, { versionKey: false,
+    collection: 'extra'});
+var extra = mongoose.model('Extra', extraSchema);
+
+var dateFromDb;
+
 
 var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
 waiter.vacCount = 0;
@@ -52,15 +50,22 @@ function getPager(callback) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(body);
             date = $('.dateBut')["0"].children["1"].children["0"].data;
+            date = convertDate(date);
 
-            if (date == sputnikLastUpdate) {
+            if (date.toString() == dateFromDb) {
                 console.log('Last update was ' + date + ' and we already parsed it.');
-                shutDownAndWrite();
+                //shutDownAndWrite();
+                process.exit(1);
             }
             else {
-                writeToFile(date);
+                // сохраняем новую дату в базу перед отключением
+                if (extraFromDb) {
+                    extraFromDb.remove();
+                }
+                var tmp = {};
+                tmp.updatedSputnik = date;
+                new extra(tmp).save();
             }
-            date = convertDate(date);
 
             issue = $('.butText')["0"].children["1"].children["0"].data;
             issue = parseInt(issue.substring(1));
@@ -82,19 +87,6 @@ function getPager(callback) {
             shutDownAndWrite();
         }
     })
-}
-
-function writeToFile(date, callback) {
-    fs.writeFile('sputnikLastUpdate.txt', date, function (err) {
-        if (err) {
-            console.log(err);
-            shutDownAndWrite();
-        }
-
-        if (callback) {
-            callback();
-        }
-    });
 }
 
 function getContent(pageNum) {
@@ -146,18 +138,6 @@ function getContent(pageNum) {
             shutDownAndWrite(0);
         }
     });
-}
-
-function shutDownAndWrite(arg) {
-    mongoose.disconnect();
-    if (arg) {
-        writeToFile(arg, function () {
-            process.exit(1);
-        });
-    }
-    else {
-        process.exit(1);
-    }
 }
 
 function pagesLoop(pages) {
@@ -220,6 +200,13 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
+function shutDownAndWrite(arg) {
+    console.log('arg: ' + arg);
+    mongoose.disconnect(function () {
+        process.exit(1);
+    });
+}
+
 function run() {
     console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
@@ -228,8 +215,22 @@ function run() {
         }
     });
 
-    getPager(function (pagesCount) {
-        pagesLoop(pagesCount);
+    // get last sputnik website update
+    extra.findOne({}, 'updatedSputnik', function (err, res) {
+        if (err) {
+            console.log(err);
+            //shutDownAndWrite(0);
+        }
+        extraFromDb = res;
+
+        if (extraFromDb) {
+            dateFromDb = extraFromDb.updatedSputnik;
+        }
+
+        // берем главную страницу и смотрим с неё дату, номер выпуска и кол-во страниц для парсинга
+        getPager(function (pagesCount) {
+            pagesLoop(pagesCount);
+        });
     });
 }
 
