@@ -56,10 +56,11 @@ function getPagerWithDate(callback) {
                 shutDownWithMsg('[OK]'.green + ' Last update was ' + date + ' and we already parsed it.');
             }
             else {
-                // Remove old date and add new to DB
+                // Remove old Date and add new to DB
                 if (extraFromDb) {
                     extraFromDb.remove();
                 }
+                // And add new
                 var tmp = {};
                 tmp.updatedSputnik = date;
                 new extra(tmp).save();
@@ -75,7 +76,7 @@ function getPagerWithDate(callback) {
 
             var nodes = $('.itemOb');
             if (nodes.length != 20) {
-                shutDownWithMsg('[ERR]'.red + ' 20 vacancies on page structure is changed!');
+                shutDownWithMsg('[ERR]'.red + ' 20 vacancies on page structure is changed!', true);
             }
             callback(pagesCount);
         }
@@ -111,7 +112,7 @@ function getAndParsePage(pageNum) {
                     if (!id) {
                         new vacancy(obj).save(function (err) {
                             if (err) {
-                                shutDownWithMsg(err);
+                                shutDownWithMsg(err, true);
                             }
                             else {
                                 keeper.vacAddedToDb++;
@@ -126,8 +127,7 @@ function getAndParsePage(pageNum) {
             }); // End of each div on page parsing
         }
         else {
-            console.log('[ERR]'.red + ' Cannot get page ' + pageNum + ', stop now.');
-            shutDownWithMsg();
+            shutDownWithMsg('[ERR]'.red + ' Cannot get page ' + pageNum + ', stop now.', true);
         }
     });
 }
@@ -197,13 +197,24 @@ function done() {
     shutDownWithMsg(info);
 }
 
-function shutDownWithMsg(msg) {
+function shutDownWithMsg(msg, removeUpdateFromDb) {
     if (msg) {
         console.log(msg);
     }
-    mongoose.disconnect(function () {
-        process.exit(1);
-    });
+    // If there was a problem
+    if (removeUpdateFromDb) {
+        if (extraFromDb) {
+            extraFromDb.remove(function () {
+                mongoose.disconnect(function () {
+                    process.exit(1);
+                });
+            });
+        }
+    } else {
+        mongoose.disconnect(function () {
+            process.exit(0);
+        });
+    }
 }
 
 function main() {
