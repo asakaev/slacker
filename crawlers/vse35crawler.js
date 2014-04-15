@@ -182,7 +182,9 @@ function getPageById(id, callback) {
             }
 
             var authorDetail = $('.contact-box .title')["0"];
-            if (authorDetail) {
+            var authorTitle = authorDetail.children["0"].attribs.href;
+
+            if (authorDetail && (authorTitle != '')) {
                 obj.authorDetailName = authorDetail.children["0"].children["0"].data;
                 var tmp = authorDetail.children["0"].attribs.href;
                 obj.authorDetailId = tmp.substring(tmp.length - 6, tmp.length);
@@ -357,7 +359,7 @@ function chainer(idStart) {
         globCount++;
         console.log('Count: ' + globCount + ', next: ' + next);
 
-        if ((next != 0) && (globCount < 20)) {
+        if ((next != 0) && (globCount < 300)) {
             chainer(next);
         }
         else {
@@ -387,6 +389,7 @@ function main() {
     });
 }
 
-main();
-//getPageById(810120);
-//getPageById(810655);
+//main();
+
+mongoose.connect('mongodb://localhost/work');
+getPageById(803570);
