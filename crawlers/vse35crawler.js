@@ -9,6 +9,8 @@
 // TODO: по телефонам тоже кстати можно обзванивать если профит какой-то может быть от этого
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
 
+// TODO: refactor saveVacToDB & saveResumeToDB to one function
+
 var start = new Date().getTime();
 
 var request = require('request');
@@ -35,29 +37,37 @@ fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
 });
 
 var db = mongoose.connection;
-var vacanciesSchema = mongoose.Schema({
-    vse35Id: Number,
-    vacancy: String,
-    text: String,
-    price: Number,
-    priceCustom: String,
-    added: Date,
-    edited: Date,
-    author: String,
-    tel: String,
-    email: String,
-    visitors: Number,
-    paymentPeriod: String,
-    experience: String,
-    education: String,
-    busyness: String,
-    workSchedule: String,
-    picture: String,
-    authorDetailName: String,
-    authorDetailId: Number
-}, { versionKey: false,
-    collection: 'vse35vacancies' });
+function getSchemaForCollection(col) {
+    return mongoose.Schema({
+        vse35Id: Number,
+        vacancy: String,
+        text: String,
+        price: Number,
+        priceCustom: String,
+        added: Date,
+        edited: Date,
+        author: String,
+        tel: String,
+        email: String,
+        visitors: Number,
+        paymentPeriod: String,
+        experience: String,
+        education: String,
+        busyness: String,
+        workSchedule: String,
+        picture: String,
+        authorDetailName: String,
+        authorDetailId: Number
+    }, { versionKey: false,
+        collection: col });
+}
+
+var vacanciesSchema = getSchemaForCollection('vse35vacancies');
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
+
+var resumesSchema = getSchemaForCollection('vse35resumes');
+var resume = mongoose.model('Resume', resumesSchema);
+
 
 // var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
 // keeper.vacCountOnPager = 0;
@@ -192,11 +202,11 @@ function getPageById(id, callback) {
                 switch (item) {
                     case 'Телефон':
                         thereWasPhone = true;
-                        obj.tel = valueRightBlock[i+1].children["0"].data.trim();
+                        obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
                         break;
                     case 'Email':
                         if (thereWasPhone) {
-                            obj.email = valueRightBlock[i+1].children["0"].data.trim();
+                            obj.email = valueRightBlock[i + 1].children["0"].data.trim();
                         }
                         else {
                             obj.email = valueRightBlock[i].children["0"].data.trim();
@@ -210,6 +220,8 @@ function getPageById(id, callback) {
             // Разбираем блок с контентом слева
             var nameLeftBlock = $('.col1 .item_inner .item_name');
             var valueLeftBlock = $('.col1 .item_inner .item_value');
+
+            var isVacancy;
 
             for (var i = 0; i < nameLeftBlock.length; i++) {
                 var item = nameLeftBlock[i].children["0"].data.trim();
@@ -234,9 +246,21 @@ function getPageById(id, callback) {
                         break;
                     case 'Образование':
                         obj.education = itemVal;
+                        break;
+                    case 'Тип объявления':
+                        if (itemVal == 'Вакансия') {
+                            isVacancy = true;
+                        }
                 }
             }
-            saveToDb(obj);
+
+            if (isVacancy) {
+                saveVacancyToDb(obj);
+            }
+            else {
+                saveResumeToDb(obj);
+            }
+
             var next = $('.next');
             var nextId = 0;
 
@@ -258,7 +282,7 @@ function getPageById(id, callback) {
     });
 }
 
-function saveToDb(obj) {
+function saveVacancyToDb(obj) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -284,6 +308,37 @@ function saveToDb(obj) {
         }
         else {
             console.log('Already here id: ' + obj.vse35Id);
+            //keeper.incrementAndCheck();
+        }
+    });
+}
+
+function saveResumeToDb(obj) {
+    // find if exist and save to db
+    resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+
+        // if not found then save to db
+        if (!id) {
+            new resume(obj).save(function (err) {
+                if (err) {
+                    console.log(err);
+                    //mongoose.disconnect();
+                    process.exit(1);
+                }
+                else {
+                    console.log('Added resume to db: ' + obj.vse35Id);
+                    //keeper.vacAddedToDb++;
+                    //keeper.incrementAndCheck();
+                }
+            });
+        }
+        else {
+            console.log('Already resume here id: ' + obj.vse35Id);
             //keeper.incrementAndCheck();
         }
     });
