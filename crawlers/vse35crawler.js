@@ -55,7 +55,8 @@ var vacanciesSchema = mongoose.Schema({
     picture: String,
     authorDetailName: String,
     authorDetailId: Number
-}, { versionKey: false });
+}, { versionKey: false,
+    collection: 'vse35vacancies' });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
 // var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
@@ -139,7 +140,11 @@ function getPageById(id, callback) {
 
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
-            obj.vacancy = $('.header-desc-ad-box .title').text();
+            var vac = $('.header-desc-ad-box .title').text();
+            if (vac != '') {
+                obj.vacancy = vac;
+            }
+
             obj.text = $('.col1 .detail_text').text().trim();
 
             obj.price = $('.price')["0"];
@@ -315,7 +320,7 @@ function done() {
 
 function main() {
     console.log('Crawler for vse35 started.');
-    mongoose.connect('mongodb://localhost/vse35', function (err) {
+    mongoose.connect('mongodb://localhost/work', function (err) {
         if (err) {
             console.log(err);
             process.exit(1);
