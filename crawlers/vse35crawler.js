@@ -1,7 +1,13 @@
 // vse35 crawler
-// Конвертация кодировки из 1251 в UTF8
+// Конвертация кодировки из 1251 в UTF8 сделана
 // TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
 // TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
+// TODO: можно хватать первую вакансию сверху и в 2 потока запускать параллельно влево и вправо!!!
+
+// TODO: собрать базу ищущих вакансии себе тоже. им рекламу можно и нужно слать
+// TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
+// TODO: по телефонам тоже кстати можно обзванивать если профит какой-то может быть от этого
+// TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
 
 var start = new Date().getTime();
 
@@ -14,7 +20,7 @@ var translator = new Iconv(fromEnc, toEnc);
 var mongoose = require('mongoose');
 var fs = require('fs');
 
-// var sputnikLastUpdate;
+// var extraFromDb;
 // var date;
 
 var lastAddedVacancyId;
@@ -25,7 +31,7 @@ fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
         process.exit(1);
     }
     lastAddedVacancyId = data;
-    console.log('Last added: ' + lastAddedVacancyId);
+    console.log('Last time top id was: ' + lastAddedVacancyId);
 });
 
 var db = mongoose.connection;
@@ -52,12 +58,12 @@ var vacanciesSchema = mongoose.Schema({
 }, { versionKey: false });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
-// var waiter = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
-// waiter.vacCount = 0;
-// waiter.vacChecked = 0;
-// waiter.vacAdded = 0;
-// waiter.incrementAndCheck = function () {
-//     if (this.vacCount == ++this.vacChecked) done();
+// var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
+// keeper.vacCountOnPager = 0;
+// keeper.vacChecked = 0;
+// keeper.vacAddedToDb = 0;
+// keeper.incrementAndCheck = function () {
+//     if (this.vacCountOnPager == ++this.vacChecked) done();
 // };
 
 //var categoriesCount;
@@ -99,8 +105,8 @@ function getMainPage(callback) {
             }
 
 
-
             // TODO: умная штука которая сама понимает что 14 можно параллельно а на 15 запустить цепочку
+            // TODO: чейнера можно в 2 раза быстрее сделать если найти способ из середины в два конца бежать
 //            var index;
 //            for (index = 0; index < top15count; index++) {
 //                var id = top15[index].children["1"].children["0"].attribs.href;
@@ -168,20 +174,29 @@ function getPageById(id, callback) {
             }
 
             // Разбираем блок контактов справа
-            var contactsCount = $('.contact-box .field_name').length;
+            var nameRightBlock = $('.contact-box .field_name');
             var valueRightBlock = $('.contact-box .field_value');
 
             if (author) {
                 valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
             }
 
-            // Если всего один элемент — значит телефон, иначе ещё и емейл
-            if (contactsCount == 1) {
-                obj.tel = valueRightBlock["1"].children["0"].data.trim();
-            }
-            else {
-                obj.tel = valueRightBlock["1"].children["0"].data.trim();
-                obj.email = valueRightBlock["2"].children["0"].data.trim();
+            var thereWasPhone;
+            for (var i = 0; i < nameRightBlock.length; i++) {
+                var item = nameRightBlock[i].children["0"].data;
+                switch (item) {
+                    case 'Телефон':
+                        thereWasPhone = true;
+                        obj.tel = valueRightBlock[i+1].children["0"].data.trim();
+                        break;
+                    case 'Email':
+                        if (thereWasPhone) {
+                            obj.email = valueRightBlock[i+1].children["0"].data.trim();
+                        }
+                        else {
+                            obj.email = valueRightBlock[i].children["0"].data.trim();
+                        }
+                }
             }
 
             var infoBox = addedInfo.find('li');
@@ -216,9 +231,7 @@ function getPageById(id, callback) {
                         obj.education = itemVal;
                 }
             }
-            //console.log(obj);
             saveToDb(obj);
-
             var next = $('.next');
             var nextId = 0;
 
@@ -226,13 +239,12 @@ function getPageById(id, callback) {
             if (next.length != 0) {
                 nextId = next["0"].children["0"].attribs.href;
                 nextId = parseInt(nextId.substring(nextId.length - 6, nextId.length));
-                //console.log('Next is ' + nextId);
             }
 
             if (callback) {
                 callback(nextId);
             }
-        } // if connect success end
+        } // end if connect success
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
             //mongoose.disconnect();
@@ -260,14 +272,14 @@ function saveToDb(obj) {
                 }
                 else {
                     console.log('Added to db: ' + obj.vse35Id);
-                    //waiter.vacAdded++;
-                    //waiter.incrementAndCheck();
+                    //keeper.vacAddedToDb++;
+                    //keeper.incrementAndCheck();
                 }
             });
         }
         else {
             console.log('Already here id: ' + obj.vse35Id);
-            //waiter.incrementAndCheck();
+            //keeper.incrementAndCheck();
         }
     });
 }
@@ -296,12 +308,12 @@ function chainer(idStart) {
 }
 
 function done() {
-     //mongoose.disconnect();
-     var time = new Date().getTime() - start;
-     console.log('Working time: ' + time / 1000 + ' sec.');
+    //mongoose.disconnect();
+    var time = new Date().getTime() - start;
+    console.log('Working time: ' + time / 1000 + ' sec.');
 }
 
-function run() {
+function main() {
     console.log('Crawler for vse35 started.');
     mongoose.connect('mongodb://localhost/vse35', function (err) {
         if (err) {
@@ -315,4 +327,6 @@ function run() {
     });
 }
 
-run();
+main();
+//getPageById(810120);
+//getPageById(810655);
