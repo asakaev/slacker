@@ -60,7 +60,7 @@
 	font-size: 1.5em;
 	padding-left: 10px;
 }
-.searchresult_ul li:hover{
+li.selected{
 	background: #D8D8D8;
 	cursor: pointer;
 }
@@ -91,4 +91,7 @@ input[type=text]::-ms-clear {
 #content .vacancy{
 	text-decoration: underline;
 	font-style: bold;
+}
+li.selected{
+	background: #D8D8D8;
 }
