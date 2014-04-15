@@ -182,12 +182,13 @@ function getPageById(id, callback) {
             }
 
             var authorDetail = $('.contact-box .title')["0"];
-            var authorTitle = authorDetail.children["0"].attribs.href;
-
-            if (authorDetail && (authorTitle != '')) {
-                obj.authorDetailName = authorDetail.children["0"].children["0"].data;
-                var tmp = authorDetail.children["0"].attribs.href;
-                obj.authorDetailId = tmp.substring(tmp.length - 6, tmp.length);
+            if (authorDetail) {
+                var authorTitle = authorDetail.children["0"].attribs.href;
+                if (authorTitle != '') {
+                    obj.authorDetailName = authorDetail.children["0"].children["0"].data;
+                    var tmp = authorDetail.children["0"].attribs.href;
+                    obj.authorDetailId = tmp.substring(tmp.length - 6, tmp.length);
+                }
             }
 
             // Разбираем блок контактов справа
@@ -389,7 +390,7 @@ function main() {
     });
 }
 
-//main();
+main();
 
-mongoose.connect('mongodb://localhost/work');
-getPageById(803570);
+//mongoose.connect('mongodb://localhost/work');
+//getPageById(803570);
