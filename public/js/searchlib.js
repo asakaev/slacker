@@ -2,10 +2,9 @@ var liveurl = "/api?q=",
 	searchurl = "/api?q=";
 
 var Search = {
-	liveSearch : function(str){
+	liveSearch : function(str) {
 		$('.content_ul').empty();
-		console.log('should b empty!');
-		if (str.length==0){ 
+		if (str.length == 0) { 
 			$(".searchresult").css({"display":"none"});
 			return;
 		}
@@ -13,14 +12,14 @@ var Search = {
 			dataType: "JSON",
 			type: "get",
 			url: liveurl+str,
-			error : function(){
+			error : function() {
 				$(".errorlog").empty();
 				$(".errorlog").append("Server is not responding.");
 				return;
 			},
-			success : function(data){
+			success : function(data) {
 				data = $.parseJSON(JSON.stringify(data));
-				if(data == ""){
+				if(data == "") {
 					$(".searchresult").css({"display":"none"});
 					$(".searchresult_ul").empty();
 					return;
@@ -35,9 +34,10 @@ var Search = {
 				
 			}
 		})
+		
 	},
-	simpleSearch : function(str){
-		if (str.length==0){
+	simpleSearch : function(str) {
+		if (str.length == 0) {
 			return;
 		};
 		changeState(1);
@@ -45,22 +45,21 @@ var Search = {
 			dataType: "JSON",
 			type: "get",
 			url: liveurl+str,
-			error : function(){
+			error : function() {
 				$(".errorlog").empty();
 				$(".errorlog").append("Server is not responding.");
 				return;
 			},
-			success : function(data){
+			success : function(data) {
 
 				data = $.parseJSON(JSON.stringify(data));
-				if(data == ""){
-					$(".searchresult").append("По вашему запросу ничего не найдено.");
+				if(data == "") {
 					return;
 				}
 				$(".content_ul").empty();
 				// $(".content").empty();
 				$("content").css({"display": "block"});
-				$.each(data, function(i,val){
+				$.each(data, function(i,val) {
 					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"</div></li>";
 					$(".content_ul").append(listItem);
 				})
@@ -70,64 +69,24 @@ var Search = {
 
 	}
 }
-$("#search").on("click", function(){
-	var request = $("#searchText").val();
-	Search.simpleSearch(request);
+$("#search").on("click", function() {
+	var query = $(this).val();
+	Search.simpleSearch(query);
 })
-$(".searchresult").on("click", ".searchresult_ul li", function(){
+$(".searchresult").on("click", ".searchresult_ul li", function() {
 	var content = $(this).text(),
 		pageurl = liveurl + content;
 	$("#searchText").val(content);
 	Search.simpleSearch(content);
-	if(pageurl!=window.location){
-        window.history.pushState({path:pageurl},'',pageurl);
-    }
 	
 
 
 })
-// function autocomplete( textBoxId, containerDivId ) {
-//     var ac = this;
-//     this.textbox     = $(textBoxId);
-//     this.ul         = $(containerDivId);
-//     this.list        = this.ul.find('li');
-//     this.pointer     = null;
 
-//     this.textbox.onkeydown = function( e ) {
-//         e = e || window.event;
-//         switch( e.keyCode ) {
-//             case 38: //up
-//                 ac.selectDiv(-1);
-//                 break;
-//             case 40: //down
-//                 ac.selectDiv(1);
-//                 break;
-//         }
-//     }
-
-//     this.selectDiv = function( inc ) {
-//         if( this.pointer !== null && this.pointer+inc >= 0 && this.pointer+inc < this.list.length ) {
-//             this.list[this.pointer].className = '';
-//             this.pointer += inc;
-//             this.list[this.pointer].className = 'active';
-//             this.textbox.value = this.list[this.pointer].innerHTML;
-//         }
-//         if( this.pointer === null ) {
-//             this.pointer = 0;
-//             this.list[this.pointer].className = 'active';
-//             this.textbox.value = this.list[this.pointer].innerHTML;
-//         }
-//     }
-// } 
-$('#searchText').on('input', function(){
-	Search.liveSearch(this.value);
-
+$('#searchText').on('input', function() {
+	var query = $(this).val();
+	Search.liveSearch(query);
 });
-$('#searchText').on('keydown', function(e){
-	if (e.keyCode == 13){
-		e.preventDefault();
-		Search.simpleSearch($('#searchText').val());
-	}
-});
+$('#searchText').on('keyup', detectKeys );
 
 // , ontextinput=''
