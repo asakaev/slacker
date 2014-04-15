@@ -32,3 +32,41 @@ function changeState(numOfState){
 		$(".content_ul").empty();
 	}
 }
+function detectKeys(e) {
+	var curr = $('.searchresult_ul').find('li.selected').first();
+
+	e.preventDefault();
+	if (e.which == 38) {
+		if(curr.text().length == 0){
+			curr = $('.searchresult_ul').find('li').last();
+		} else {
+			curr.removeClass('selected');
+			curr = curr.prev();
+		}
+    	$('#searchText').val(curr.text());
+    	curr.toggleClass('selected');
+    	//up - prev
+    }
+    else if (e.which == 40) {
+    	if(curr.text().length == 0){
+			curr = $('.searchresult_ul').find('li').first();
+		} else {
+			curr.removeClass('selected');
+			curr = curr.next();
+		}
+    	$('#searchText').val(curr.text());		
+    	curr.addClass('selected');
+    	//down - next
+    }
+    else if (e.which == 13) {
+		var q = $('#searchText').val();
+		Search.simpleSearch(q);
+		$('#searchText').blur();
+    }
+}
+$(".searchresult").on("mouseenter", ".searchresult_ul li", function() {
+ 	$(this).addClass('selected');
+})
+$(".searchresult").on("mouseleave", ".searchresult_ul li", function() {
+ 	$(this).removeClass('selected');
+})
