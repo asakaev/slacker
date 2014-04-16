@@ -10,6 +10,7 @@
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
 
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
+// TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 
 var start = new Date().getTime();
 
@@ -151,7 +152,13 @@ function getPageById(id, callback) {
             // Основные поля без левого и правого списков
             obj.vse35Id = id;
             var vac = $('.header-desc-ad-box .title').text();
-            if (vac != '') {
+            if (vac == '') {
+                var extraVac = $('.st_title .title')["1"].children["0"].data;
+                var extraVacBegin = extraVac.substring(0, 6);
+                if (extraVacBegin != ' - зп ') {
+                    obj.vacancy = extraVac;
+                }
+            } else {
                 obj.vacancy = vac;
             }
 
@@ -360,7 +367,7 @@ function chainer(idStart) {
         globCount++;
         console.log('Count: ' + globCount + ', next: ' + next);
 
-        if ((next != 0) && (globCount < 300)) {
+        if ((next != 0) && (globCount < 400)) {
             chainer(next);
         }
         else {
@@ -373,7 +380,7 @@ function chainer(idStart) {
 function done() {
     //mongoose.disconnect();
     var time = new Date().getTime() - start;
-    console.log('Working time: ' + time / 1000 + ' sec.');
+    console.log('Working time: ' + time / 1000 / 60 + ' min.');
 }
 
 function main() {
@@ -390,7 +397,7 @@ function main() {
     });
 }
 
-main();
+//main();
 
-//mongoose.connect('mongodb://localhost/work');
-//getPageById(803570);
+mongoose.connect('mongodb://localhost/work');
+getPageById(799620);
