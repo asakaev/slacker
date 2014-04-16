@@ -2,12 +2,12 @@
  * Module dependencies.
  */
 
-require( './db' ); //for mongoose. Require this first!!!
+require('./db'); //for mongoose. Require this first!!!
 
 var express = require('express')
-  , routes = require('./routes')
-  , http = require('http')
-  , path = require('path');
+    , routes = require('./routes')
+    , http = require('http')
+    , path = require('path');
 
 var app = express();
 
@@ -26,7 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // development only
 if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
+    app.use(express.errorHandler());
 }
 
 app.get('/', routes.index);
@@ -34,6 +34,6 @@ app.get('/', routes.index);
 var api = require('./routes/api'); // mongoose
 app.get('/api', api.dbGetJSON);
 
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
+http.createServer(app).listen(app.get('port'), function () {
+    console.log('Express server listening on port ' + app.get('port'));
 });
