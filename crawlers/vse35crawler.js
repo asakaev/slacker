@@ -11,6 +11,7 @@
 
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
+// TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
 
 var start = new Date().getTime();
 
@@ -65,7 +66,6 @@ function getSchemaForCollection(col) {
 
 var vacanciesSchema = getSchemaForCollection('vse35vacancies');
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
-
 var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
 
@@ -109,7 +109,7 @@ function getMainPage(callback) {
             }
 
             var topId = top15["0"].children["1"].children["0"].attribs.href;
-            topId = parseInt(topId.substring(topId.length - 6, topId.length));
+            topId = parseInt(topId.split('=')["1"]);
 
             // если вызываем с колбеком, то передаем туда id верхней вакансии
             if (callback) {
@@ -194,7 +194,7 @@ function getPageById(id, callback) {
                 if (authorTitle != '') {
                     obj.authorDetailName = authorDetail.children["0"].children["0"].data;
                     var tmp = authorDetail.children["0"].attribs.href;
-                    obj.authorDetailId = tmp.substring(tmp.length - 6, tmp.length);
+                    obj.authorDetailId = parseInt(tmp.split('=')["1"]);
                 }
             }
 
@@ -277,7 +277,7 @@ function getPageById(id, callback) {
             // Если дальше есть страница
             if (next.length != 0) {
                 nextId = next["0"].children["0"].attribs.href;
-                nextId = parseInt(nextId.substring(nextId.length - 6, nextId.length));
+                nextId = parseInt(nextId.split('=')["1"]);
             }
 
             if (callback) {
@@ -367,7 +367,7 @@ function chainer(idStart) {
         globCount++;
         console.log('Count: ' + globCount + ', next: ' + next);
 
-        if ((next != 0) && (globCount < 400)) {
+        if ((next != 0) && (globCount < 20)) {
             chainer(next);
         }
         else {
@@ -397,7 +397,7 @@ function main() {
     });
 }
 
-//main();
+main();
 
-mongoose.connect('mongodb://localhost/work');
-getPageById(799620);
+//mongoose.connect('mongodb://localhost/work');
+//getPageById(554487);
