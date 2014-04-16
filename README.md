@@ -11,7 +11,7 @@ Win.
 2. Checkout YOURs branch and merge master into it.
 3. Edit and TEST it.
 4. Do 9000 commits.
-5. Merge to master back and checkout BACK to master.
+5. Checkout BACK to master and merge.
 6. Pull fresh master. fix diffs.
 7. Push your master changes and website will change automagically.
 
