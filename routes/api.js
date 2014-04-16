@@ -21,7 +21,7 @@ exports.dbGetJSON = function (req, res) {
             res.jsonp([]);
         }
         else {
-            Vacancy.find({ vacancy: new RegExp(clean, 'i') }, '-sputnikId -_id', function (err, vacancies) {
+            Vacancy.find({ vacancy: new RegExp(clean, 'i') }, '-idSputnik -_id -issue', function (err, vacancies) {
                 if (err) return console.error(err);
                 res.jsonp(vacancies);
             }); // end vacancies find
