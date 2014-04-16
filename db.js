@@ -1,12 +1,14 @@
 var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
 
-var Sputnik = new Schema({
+var sputnikSchema = mongoose.Schema({
     vacancy: String,
     text: String,
-    sputnikId: String,
-    tel: String
-});
+    idSputnik: Number,
+    tel: String,
+    added: Date,
+    issue: Number
+}, { versionKey: false,
+    collection: 'sputnik'});
+var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
-mongoose.model('Sputnik', Sputnik);
 mongoose.connect('mongodb://localhost/work');
