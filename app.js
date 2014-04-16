@@ -1,7 +1,3 @@
-/**
- * Module dependencies.
- */
-
 require('./db'); // for mongoose. Require this first!!!
 
 var express = require('express')
