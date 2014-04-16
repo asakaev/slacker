@@ -1,4 +1,5 @@
 ﻿var mongoose = require('mongoose');
+var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
 function replaceAllBackSlash(targetStr) {
     var index = targetStr.indexOf("\\");

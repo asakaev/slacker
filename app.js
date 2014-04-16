@@ -2,7 +2,7 @@
  * Module dependencies.
  */
 
-require('./db'); //for mongoose. Require this first!!!
+require('./db'); // for mongoose. Require this first!!!
 
 var express = require('express')
     , routes = require('./routes')
