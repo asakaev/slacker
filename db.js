@@ -1,12 +1,12 @@
-var mongoose = require( 'mongoose' );
-var Schema   = mongoose.Schema;
- 
-var Vacancy = new Schema({
-    vacancy : String,
-    text : String,
-    sputnikId : String,
-    tel : String
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+
+var Sputnik = new Schema({
+    vacancy: String,
+    text: String,
+    sputnikId: String,
+    tel: String
 });
- 
-mongoose.model( 'Vacancy', Vacancy );
-mongoose.connect( 'mongodb://localhost/work' );
+
+mongoose.model('Sputnik', Sputnik);
+mongoose.connect('mongodb://localhost/work');
