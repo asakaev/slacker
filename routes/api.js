@@ -1,5 +1,5 @@
 ﻿var mongoose = require('mongoose');
-var vacancy = mongoose.model('Vacancy', sputnikSchema);
+var Vacancy = mongoose.model('Vacancy');
 
 function replaceAllBackSlash(targetStr) {
     var index = targetStr.indexOf("\\");
@@ -21,7 +21,7 @@ exports.dbGetJSON = function (req, res) {
             res.jsonp([]);
         }
         else {
-            vacancy.find({ vacancy: new RegExp(clean, 'i') }, '-sputnikId -_id', function (err, vacancies) {
+            Vacancy.find({ vacancy: new RegExp(clean, 'i') }, '-sputnikId -_id', function (err, vacancies) {
                 if (err) return console.error(err);
                 res.jsonp(vacancies);
             }); // end vacancies find

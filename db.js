@@ -9,6 +9,6 @@ var sputnikSchema = mongoose.Schema({
     issue: Number
 }, { versionKey: false,
     collection: 'sputnik'});
-//var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
+mongoose.model('Vacancy', sputnikSchema);
 mongoose.connect('mongodb://localhost/work');
