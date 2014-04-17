@@ -86,10 +86,65 @@ function getPossibleWords(str, callback) {
     console.log('Found: ' + possibleWord.length);
 
     if (callback) {
-        callback();
+        callback(str);
     }
 }
 
-function youMean() {
+function youMean(str) {
     console.log(possibleWord.length);
+
+    if ((possibleWord.length)) {
+        for (var i in possibleWord) {
+            min_levenshtein = Math.min(min_levenshtein, levenshtein(possibleWord[i], str));
+        }
+
+        //Считаем максимальное значение подобности слов
+        for (var i in possibleWord) {
+            if (levenshtein(possibleWord[i], str) == min_levenshtein) {
+                similarity = Math.max(similarity, jonniewalker(possibleWord, str));
+                //console.log(similar_text('possibleWord', 'str'));
+            }
+        }
+
+        //Проверка всего слова
+        for (var i in possibleWord) {
+            if (levenshtein(possibleWord[i], str) <= min_levenshtein) {
+                if (jonniewalker(possibleWord[i], str) >= similarity) {
+                    result.push(possibleWord[i]);
+                }
+            }
+        }
+
+        for (var i in result) {
+            meta_min_levenshtein = Math.min(meta_min_levenshtein, levenshtein(metaphone.process(result[i]), metaphone.process(str)));
+        }
+
+        //Считаем максимальное значение подобности слов
+        for (var i in result) {
+            if (levenshtein(result[i], str) == meta_min_levenshtein) {
+                meta_similarity = Math.max(meta_similarity, jonniewalker(metaphone.process(result[i]), metaphone.process(str)));
+                //console.log(similar_text('metaphone(result[i])', 'metaphone(str)'));
+            }
+        }
+
+
+        //Проверка через метафон
+        for (var i in result) {
+            if (levenshtein(metaphone.process(result[i]), metaphone.process(str)) <= meta_min_levenshtein) {
+                if (jonniewalker(metaphone.process(result[i]), metaphone.process(str)) >= meta_similarity) {
+
+                    meta_result.push(result[i]);
+                }
+            }
+        }
+
+        correct.push(meta_result.pop());
+
+    }
+    else {
+
+        correct.push(str);
+    }
+    console.log("correct:");
+    console.log(correct.pop());
 }
