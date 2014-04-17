@@ -56,14 +56,14 @@ function translite(str) {
 
 function findDbAndReplace(str, callback) {
     var start = new Date().getTime();
-    //var translited = translite(str)
+    var translited = translite(str);
 
     for (var k in dbContent) {
-        var lev = levenshtein(metaphone.process(translite(str)), metaphone.process(dbContent[k].translite));
-        var met = ((metaphone.process(translite(str)).length) / 2) + 1;
+        var lev = levenshtein(metaphone.process(translited), metaphone.process(dbContent[k].translite));
+        var met = ((metaphone.process(translited).length) / 2) + 1;
 
         if (lev < met) {
-            if (levenshtein(translite(str), dbContent[k].translite) < (translite(str)).length / 2 + 1) {
+            if (levenshtein(translited, dbContent[k].translite) < translited.length / 2 + 1) {
                 possibleWord.push(dbContent[k].text);
             }
         }
