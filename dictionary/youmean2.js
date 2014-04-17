@@ -35,7 +35,7 @@ mongoose.connect('mongodb://localhost/work', function (err) {
         var time = new Date().getTime() - start;
         console.log('Get data from db to RAM in ' + time / 1000 + ' sec: ' + dbContent["0"]);
 
-        findDbAndReplace('ЯДЕРНЫЙ');
+        findDbAndReplace('ЯДЕРНЫЙ2');
     });
 });
 
@@ -55,6 +55,19 @@ function translite(str) {
 }
 
 function findDbAndReplace(str, callback) {
+    dict.findOne({'text': str}, '-_id', function (err, result) {
+        if (err) console.log(err);
+
+        if (result) {
+            console.log('This word IS in DB. Callback now if it is.');
+            return str;
+        } else {
+            getPossibleWords(str, youMean);
+        }
+    });
+}
+
+function getPossibleWords(str, callback) {
     var start = new Date().getTime();
     var translited = translite(str);
 
@@ -70,31 +83,13 @@ function findDbAndReplace(str, callback) {
     }
     var time = new Date().getTime() - start;
     console.log('Done getting lev and met in ' + time / 1000 + ' sec.');
+    console.log('Found: ' + possibleWord.length);
 
-//    console.log(possibleWord);
-
-//
-//    dict.findOne({'text': str}, '-_id', function (err, result) {
-//        if (err) console.log(err);
-//
-//        //console.log(result);
-//
-//        if (result) {
-//            console.log('This word IS in DB. Callback now if it is.');
-//            if (callback) {
-//                callback(str);
-//            }
-//        } else {
-//            youmean(str);
-//        }
-//    });
+    if (callback) {
+        callback();
+    }
 }
 
-function youmean(str) {
-    console.log('RUN CALLBACK!: ' + str);
-
-
-    // code
-    //var obj = JSON.parse('[{"origin": "администратор","trans":"administrator"},{"origin": "слесарь","trans":"slesar"}]');
-    var stop = 1;
+function youMean() {
+    console.log(possibleWord.length);
 }
