@@ -1,3 +1,5 @@
+// TODO: отключаться от базы руками нужно. не понятно когда кончился файл
+
 var fs = require('fs');
 var readline = require('readline');
 var mongoose = require('mongoose');
@@ -21,7 +23,8 @@ function translite(str) {
         'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ь': '', 'ю': 'yu', 'я': 'ya', 'Ё': 'YO', 'Х': 'H', 'Ц': 'TS',
         'Ч': 'CH', 'Ш': 'SH', 'Щ': 'SHCH', 'Ъ': '', 'Ь': '', 'Ю': 'YU', 'Я': 'YA'};
     var replacer = function (a) {
-        return (arr[a] || a);
+        if (arr[a] == '') return '';
+        else return (arr[a] || a);
     };
     return str.replace(/[А-яёЁ]/g, replacer);
 }
@@ -33,7 +36,7 @@ mongoose.connect('mongodb://localhost/work', function (err) {
     }
 
     var rd = readline.createInterface({
-        input: fs.createReadStream('lite.txt', {encoding: null}),
+        input: fs.createReadStream('dictionaryUTF8.txt', {encoding: null}),
         output: process.stdout,
         terminal: false
     });
@@ -45,7 +48,10 @@ mongoose.connect('mongodb://localhost/work', function (err) {
 
             var a = new dict({text: res, translite: tr});
             a.save(function () {
-                console.log(++count + ' saved.');
+                if ((++count % 10000) == 0) {
+                    var time = new Date(Date.now());
+                    console.log(count/1000 + 'K saved at ' + time + '.');
+                }
             });
         }
     });
