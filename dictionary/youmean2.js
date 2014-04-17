@@ -35,7 +35,7 @@ mongoose.connect('mongodb://localhost/work', function (err) {
         var time = new Date().getTime() - start;
         console.log('Get data from db to RAM in ' + time / 1000 + ' sec: ' + dbContent["0"]);
 
-        findDbAndReplace('ЯДЕРНЫЙ2');
+        findDbAndReplace('ФАПАТЬ');
     });
 });
 
@@ -91,22 +91,20 @@ function getPossibleWords(str, callback) {
 }
 
 function youMean(str) {
-    console.log(possibleWord.length);
-
+    // Считаем минимальное расстояние Левенштейна
     if ((possibleWord.length)) {
         for (var i in possibleWord) {
             min_levenshtein = Math.min(min_levenshtein, levenshtein(possibleWord[i], str));
         }
 
-        //Считаем максимальное значение подобности слов
+        // Считаем максимальное значение подобности слов
         for (var i in possibleWord) {
             if (levenshtein(possibleWord[i], str) == min_levenshtein) {
                 similarity = Math.max(similarity, jonniewalker(possibleWord, str));
-                //console.log(similar_text('possibleWord', 'str'));
             }
         }
 
-        //Проверка всего слова
+        // Проверка всего слова
         for (var i in possibleWord) {
             if (levenshtein(possibleWord[i], str) <= min_levenshtein) {
                 if (jonniewalker(possibleWord[i], str) >= similarity) {
@@ -119,16 +117,14 @@ function youMean(str) {
             meta_min_levenshtein = Math.min(meta_min_levenshtein, levenshtein(metaphone.process(result[i]), metaphone.process(str)));
         }
 
-        //Считаем максимальное значение подобности слов
+        // Считаем максимальное значение подобности слов
         for (var i in result) {
             if (levenshtein(result[i], str) == meta_min_levenshtein) {
                 meta_similarity = Math.max(meta_similarity, jonniewalker(metaphone.process(result[i]), metaphone.process(str)));
-                //console.log(similar_text('metaphone(result[i])', 'metaphone(str)'));
             }
         }
 
-
-        //Проверка через метафон
+        // Проверка через метафон
         for (var i in result) {
             if (levenshtein(metaphone.process(result[i]), metaphone.process(str)) <= meta_min_levenshtein) {
                 if (jonniewalker(metaphone.process(result[i]), metaphone.process(str)) >= meta_similarity) {
@@ -137,14 +133,13 @@ function youMean(str) {
                 }
             }
         }
-
         correct.push(meta_result.pop());
 
     }
     else {
-
         correct.push(str);
     }
-    console.log("correct:");
-    console.log(correct.pop());
+
+    mongoose.disconnect();
+    console.log('Correct: ' + correct["0"]);
 }
