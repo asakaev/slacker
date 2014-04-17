@@ -1,3 +1,5 @@
+// TODO: отключение от базы сделать
+
 var mongoose = require('mongoose');
 var natural = require('natural');
 
@@ -41,7 +43,9 @@ mongoose.connect('mongodb://localhost/work', function (err) {
         var time = new Date().getTime() - start;
         console.log('Get data from db to RAM in ' + time / 1000 + ' sec and first is: ' + dbContent["0"]);
 
-        findDbAndReplace('васян');
+        var toFind = 'Васян';
+        console.log('We gonna fix this: ' + toFind);
+        findDbAndReplace(toFind);
     });
 });
 
@@ -86,7 +90,7 @@ function getPossibleWords(str, callback) {
     }
     var time = new Date().getTime() - start;
     console.log('Done getting lev and met in ' + time / 1000 + ' sec.');
-    console.log('Found: ' + possibleWord.length);
+    console.log('Found ' + possibleWord.length + ' similar in dictionary.');
 
     if (callback) {
         callback(str);
