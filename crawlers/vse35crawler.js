@@ -4,7 +4,6 @@
 // TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
 // TODO: можно хватать первую вакансию сверху и в 2 потока запускать параллельно влево и вправо!!!
 
-// TODO: собрать базу ищущих вакансии себе тоже. им рекламу можно и нужно слать
 // TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
 // TODO: по телефонам тоже кстати можно обзванивать если профит какой-то может быть от этого
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
@@ -22,21 +21,9 @@ var fromEnc = 'cp1251';
 var toEnc = 'utf-8';
 var translator = new Iconv(fromEnc, toEnc);
 var mongoose = require('mongoose');
-var fs = require('fs');
 
-// var extraFromDb;
-// var date;
-
+var extraFromDb;
 var lastAddedVacancyId;
-fs.readFile('vse35LastAddedVacancyId.txt', 'utf-8', function read(err, data) {
-    if (err) {
-        console.log(err);
-        //mongoose.disconnect();
-        process.exit(1);
-    }
-    lastAddedVacancyId = data;
-    console.log('Last time top id was: ' + lastAddedVacancyId);
-});
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -68,6 +55,12 @@ var vacanciesSchema = getSchemaForCollection('vse35vacancies');
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
+
+var extraSchema = mongoose.Schema({
+    lastAddedVacancyId: Number
+}, { versionKey: false,
+    collection: 'extra'});
+var extra = mongoose.model('Extra', extraSchema);
 
 
 // var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
@@ -377,11 +370,11 @@ function chainer(idStart) {
     });
 }
 
-function done() {
-    //mongoose.disconnect();
-    var time = new Date().getTime() - start;
-    console.log('Working time: ' + time / 1000 / 60 + ' min.');
-}
+//function done() {
+//    //mongoose.disconnect();
+//    var time = new Date().getTime() - start;
+//    console.log('Working time: ' + time / 1000 / 60 + ' min.');
+//}
 
 function main() {
     console.log('Crawler for vse35 started.');
@@ -390,10 +383,25 @@ function main() {
             console.log(err);
             process.exit(1);
         }
-    });
-    getMainPage(function (id) {
-        console.log('Got id: ' + id + ' from main page and starting chainer.');
-        chainer(id);
+
+        var query = extra.findOne();
+        query.where('lastAddedVacancyId').gt(0);
+
+        query.exec(function (err, res) {
+            if (err) console.log(err);
+            extraFromDb = res;
+
+            // If there is last update Date in DB then use it, otherwise null
+            if (extraFromDb) {
+                lastAddedVacancyId = extraFromDb.lastAddedVacancyId;
+            }
+
+            console.log('Last time top id was: ' + lastAddedVacancyId);
+            getMainPage(function (id) {
+                console.log('Got id: ' + id + ' from main page and starting chainer.');
+                chainer(id);
+            });
+        });
     });
 }
 
