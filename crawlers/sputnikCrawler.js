@@ -30,7 +30,8 @@ var sputnikSchema = mongoose.Schema({
 var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
 var extraSchema = mongoose.Schema({
-    updatedSputnik: Date
+    updatedSputnik: Date,
+    lastAddedVacancyId: Number
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -40,9 +41,7 @@ keeper.vacCountOnPager = 0;
 keeper.vacChecked = 0;
 keeper.vacAddedToDb = 0;
 keeper.incrementAndCheck = function () {
-    if (this.vacCountOnPager == ++this.vacChecked) {
-        done();
-    }
+    if (this.vacCountOnPager == ++this.vacChecked) done();
 };
 
 function getPagerWithDate(callback) {
@@ -56,14 +55,13 @@ function getPagerWithDate(callback) {
                 shutDownWithMsg('[OK]'.green + ' Last update was ' + date + ' and we already parsed it.');
             }
             else {
-                // Remove old Date and add new to DB
+                // If there is date in DB then update it, else create new
                 if (extraFromDb) {
-                    extraFromDb.remove();
+                    extraFromDb.updatedSputnik = date;
+                    extraFromDb.save();
+                } else {
+                    new extra({ updatedSputnik: date }).save();
                 }
-                // And add new
-                var tmp = {};
-                tmp.updatedSputnik = date;
-                new extra(tmp).save();
             }
 
             issue = $('.butText')["0"].children["1"].children["0"].data;
@@ -104,9 +102,7 @@ function getAndParsePage(pageNum) {
 
                 // Find if exist and save to DB
                 vacancy.findOne({'idSputnik': obj.idSputnik}, function (err, id) {
-                    if (err) {
-                        shutDownWithMsg(err);
-                    }
+                    if (err) shutDownWithMsg(err);
 
                     // If not found then save to DB
                     if (!id) {
@@ -147,42 +143,42 @@ function convertDate(strInput) {
 
     switch (splitted["1"]) {
         case 'января':
-            mon = 1;
+            mon = 0;
             break;
         case 'февраля':
-            mon = 2;
+            mon = 1;
             break;
         case 'марта':
-            mon = 3;
+            mon = 2;
             break;
         case 'апреля':
-            mon = 4;
+            mon = 3;
             break;
         case 'мая':
-            mon = 5;
+            mon = 4;
             break;
         case 'июня':
-            mon = 6;
+            mon = 5;
             break;
         case 'июля':
-            mon = 7;
+            mon = 6;
             break;
         case 'августа':
-            mon = 8;
+            mon = 7;
             break;
         case 'сентября':
-            mon = 9;
+            mon = 8;
             break;
         case 'октября':
-            mon = 10;
+            mon = 9;
             break;
         case 'ноября':
-            mon = 11;
+            mon = 10;
             break;
         case 'декабря':
-            mon = 12;
+            mon = 11;
     }
-    return new Date(year, mon - 1, day);
+    return new Date(year, mon, day);
 }
 
 function done() {
@@ -198,9 +194,8 @@ function done() {
 }
 
 function shutDownWithMsg(msg, removeUpdateFromDb) {
-    if (msg) {
-        console.log(msg);
-    }
+    if (msg) console.log(msg);
+
     // If there was a problem
     if (removeUpdateFromDb) {
         if (extraFromDb) {
@@ -220,16 +215,14 @@ function shutDownWithMsg(msg, removeUpdateFromDb) {
 function main() {
     console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
-        if (err) {
-            shutDownWithMsg(err);
-        }
+        if (err) shutDownWithMsg(err);
     });
 
     // Get last Sputnik website update
-    extra.findOne({}, 'updatedSputnik', function (err, res) {
-        if (err) {
-            shutDownWithMsg(err);
-        }
+    var query = extra.findOne();
+    query.where('updatedSputnik').ne(null);
+    query.exec(function (err, res) {
+        if (err) shutDownWithMsg(err);
         extraFromDb = res;
 
         // If there is last update Date in DB then use it, otherwise null

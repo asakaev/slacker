@@ -11,6 +11,7 @@
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
+// TODO: lastAddedVacancyId сохранять. он только читается пока.
 
 var start = new Date().getTime();
 
@@ -57,6 +58,7 @@ var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
+    updatedSputnik: Date,
     lastAddedVacancyId: Number
 }, { versionKey: false,
     collection: 'extra'});
@@ -377,7 +379,7 @@ function chainer(idStart) {
 //}
 
 function main() {
-    console.log('Crawler for vse35 started.');
+    console.log('Crawler for Vse35 started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
         if (err) {
             console.log(err);
@@ -385,8 +387,7 @@ function main() {
         }
 
         var query = extra.findOne();
-        query.where('lastAddedVacancyId').gt(0);
-
+        query.where('lastAddedVacancyId').ne(null);
         query.exec(function (err, res) {
             if (err) console.log(err);
             extraFromDb = res;
@@ -394,9 +395,11 @@ function main() {
             // If there is last update Date in DB then use it, otherwise null
             if (extraFromDb) {
                 lastAddedVacancyId = extraFromDb.lastAddedVacancyId;
+                console.log('Last time top ID was: ' + lastAddedVacancyId);
+            } else {
+                console.log('There is no last updated ID in database.');
             }
 
-            console.log('Last time top id was: ' + lastAddedVacancyId);
             getMainPage(function (id) {
                 console.log('Got id: ' + id + ' from main page and starting chainer.');
                 chainer(id);
