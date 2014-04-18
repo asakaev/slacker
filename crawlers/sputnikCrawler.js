@@ -40,9 +40,7 @@ keeper.vacCountOnPager = 0;
 keeper.vacChecked = 0;
 keeper.vacAddedToDb = 0;
 keeper.incrementAndCheck = function () {
-    if (this.vacCountOnPager == ++this.vacChecked) {
-        done();
-    }
+    if (this.vacCountOnPager == ++this.vacChecked) done();
 };
 
 function getPagerWithDate(callback) {
@@ -56,9 +54,13 @@ function getPagerWithDate(callback) {
                 shutDownWithMsg('[OK]'.green + ' Last update was ' + date + ' and we already parsed it.');
             }
             else {
-                var update = { 'updatedSputnik': date };
-                var options = { new: true, select: 'updatedSputnik' };
-                extra.findOneAndUpdate({}, update, options, function() {});
+                // If there is date in DB then update it, else create new
+                if (extraFromDb) {
+                    extraFromDb.updatedSputnik = date;
+                    extraFromDb.save();
+                } else {
+                    new extra({ updatedSputnik: date }).save();
+                }
             }
 
             issue = $('.butText')["0"].children["1"].children["0"].data;
@@ -99,9 +101,7 @@ function getAndParsePage(pageNum) {
 
                 // Find if exist and save to DB
                 vacancy.findOne({'idSputnik': obj.idSputnik}, function (err, id) {
-                    if (err) {
-                        shutDownWithMsg(err);
-                    }
+                    if (err) shutDownWithMsg(err);
 
                     // If not found then save to DB
                     if (!id) {
@@ -193,9 +193,8 @@ function done() {
 }
 
 function shutDownWithMsg(msg, removeUpdateFromDb) {
-    if (msg) {
-        console.log(msg);
-    }
+    if (msg) console.log(msg);
+
     // If there was a problem
     if (removeUpdateFromDb) {
         if (extraFromDb) {
@@ -215,16 +214,14 @@ function shutDownWithMsg(msg, removeUpdateFromDb) {
 function main() {
     console.log('Crawler for sputnik started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
-        if (err) {
-            shutDownWithMsg(err);
-        }
+        if (err) shutDownWithMsg(err);
     });
 
     // Get last Sputnik website update
-    extra.findOne({}, 'updatedSputnik', function (err, res) {
-        if (err) {
-            shutDownWithMsg(err);
-        }
+    var query = extra.findOne();
+    query.where('updatedSputnik');
+    query.exec(function (err, res) {
+        if (err) shutDownWithMsg(err);
         extraFromDb = res;
 
         // If there is last update Date in DB then use it, otherwise null
