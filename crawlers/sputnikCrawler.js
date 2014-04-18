@@ -56,14 +56,9 @@ function getPagerWithDate(callback) {
                 shutDownWithMsg('[OK]'.green + ' Last update was ' + date + ' and we already parsed it.');
             }
             else {
-                // Remove old Date and add new to DB
-                if (extraFromDb) {
-                    extraFromDb.remove();
-                }
-                // And add new
-                var tmp = {};
-                tmp.updatedSputnik = date;
-                new extra(tmp).save();
+                var update = { 'updatedSputnik': date };
+                var options = { new: true, select: 'updatedSputnik' };
+                extra.findOneAndUpdate({}, update, options, function() {});
             }
 
             issue = $('.butText')["0"].children["1"].children["0"].data;
@@ -147,42 +142,42 @@ function convertDate(strInput) {
 
     switch (splitted["1"]) {
         case 'января':
-            mon = 1;
+            mon = 0;
             break;
         case 'февраля':
-            mon = 2;
+            mon = 1;
             break;
         case 'марта':
-            mon = 3;
+            mon = 2;
             break;
         case 'апреля':
-            mon = 4;
+            mon = 3;
             break;
         case 'мая':
-            mon = 5;
+            mon = 4;
             break;
         case 'июня':
-            mon = 6;
+            mon = 5;
             break;
         case 'июля':
-            mon = 7;
+            mon = 6;
             break;
         case 'августа':
-            mon = 8;
+            mon = 7;
             break;
         case 'сентября':
-            mon = 9;
+            mon = 8;
             break;
         case 'октября':
-            mon = 10;
+            mon = 9;
             break;
         case 'ноября':
-            mon = 11;
+            mon = 10;
             break;
         case 'декабря':
-            mon = 12;
+            mon = 11;
     }
-    return new Date(year, mon - 1, day);
+    return new Date(year, mon, day);
 }
 
 function done() {
