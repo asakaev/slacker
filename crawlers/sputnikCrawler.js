@@ -30,7 +30,8 @@ var sputnikSchema = mongoose.Schema({
 var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
 var extraSchema = mongoose.Schema({
-    updatedSputnik: Date
+    updatedSputnik: Date,
+    lastAddedVacancyId: Number
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -219,7 +220,7 @@ function main() {
 
     // Get last Sputnik website update
     var query = extra.findOne();
-    query.where('updatedSputnik');
+    query.where('updatedSputnik').ne(null);
     query.exec(function (err, res) {
         if (err) shutDownWithMsg(err);
         extraFromDb = res;
