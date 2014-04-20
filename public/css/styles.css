@@ -14,13 +14,13 @@
 	height: auto !important;
 	margin: 0 auto;
 }
-#header{
+/*#header{
 	width: 100%;
 	overflow: hidden;
 	position: fixed;
 	height: 80px;
 	background-color: lightgray;
-}
+}*/
 #search{
 	width: 90%;
 	position: fixed;
