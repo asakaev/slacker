@@ -1,5 +1,5 @@
 var liveurl = "/api?q=",
-	searchurl = "/api?q=";
+  	searchurl = "/api?q=";
 
 var Search = {
 	liveSearch : function(str) {
@@ -88,5 +88,3 @@ $('#searchText').on('input', function() {
 	Search.liveSearch(query);
 });
 $('#searchText').on('keyup', detectKeys );
-
-// , ontextinput=''
