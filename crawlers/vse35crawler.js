@@ -26,6 +26,8 @@ var mongoose = require('mongoose');
 var extraFromDb;
 var lastAddedVacancyId;
 
+const maxToCheck = 200;
+
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
     return mongoose.Schema({
@@ -268,15 +270,20 @@ function getPageById(id, callback) {
 
             var next = $('.next');
             var nextId = 0;
-
-            // Если дальше есть страница
             if (next.length != 0) {
                 nextId = next["0"].children["0"].attribs.href;
                 nextId = parseInt(nextId.split('=')["1"]);
             }
 
+            var prev = $('.prev');
+            var prevId = 0;
+            if (prev.length != 0) {
+                prevId = prev["0"].children["0"].attribs.href;
+                prevId = parseInt(prevId.split('=')["1"]);
+            }
+
             if (callback) {
-                callback(nextId);
+                callback(prevId, nextId);
             }
         } // end if connect success
         else {
@@ -357,26 +364,47 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
-function chainer(idStart) {
-    getPageById(idStart, function (next) {
+function chainerNext(idStart) {
+    getPageById(idStart, function (prev, next) {
         globCount++;
         console.log('Count: ' + globCount + ', next: ' + next);
 
-        if ((next != 0) && (globCount < 20)) {
-            chainer(next);
+        if ((next != 0) && (globCount < maxToCheck)) {
+            chainerNext(next);
         }
         else {
-            console.log('Ended and ' + globCount + ' pages got.');
+            console.log('We went forward [>>] and ' + globCount + ' pages got.');
             done();
         }
     });
 }
 
-//function done() {
-//    //mongoose.disconnect();
-//    var time = new Date().getTime() - start;
-//    console.log('Working time: ' + time / 1000 / 60 + ' min.');
-//}
+function chainerPrev(idStart) {
+    getPageById(idStart, function (prev, next) {
+        globCount++;
+        console.log('Count: ' + globCount + ', prev: ' + prev);
+
+        if ((prev != 0) && (globCount < maxToCheck)) {
+            chainerPrev(prev);
+        }
+        else {
+            console.log('We went back [<<] and got ' + globCount + ' hidden pages.');
+            done();
+        }
+    });
+}
+
+
+function done() {
+    //mongoose.disconnect();
+    var time = (new Date().getTime() - start)/1000;
+
+    if (time > 60) {
+        console.log('Working time: ' + time / 60 + ' min.');
+    } else {
+        console.log('Working time: ' + time + ' sec.');
+    }
+}
 
 function main() {
     console.log('Crawler for Vse35 started.');
@@ -402,7 +430,8 @@ function main() {
 
             getMainPage(function (id) {
                 console.log('Got id: ' + id + ' from main page and starting chainer.');
-                chainer(id);
+                //chainerNext(id);
+                chainerPrev(id);
             });
         });
     });
