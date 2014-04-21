@@ -25,8 +25,7 @@ var mongoose = require('mongoose');
 
 var extraFromDb;
 var lastAddedVacancyId;
-
-const maxToCheck = 200;
+const maxToCheck = 30;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -78,6 +77,10 @@ var extra = mongoose.model('Extra', extraSchema);
 //var categoriesCount;
 var totalVacancies = 0;
 var globCount = 0;
+var prevCount = 0;
+var prevDone = false;
+var nextCount = 0;
+var nextDone = false;
 
 
 function getMainPage(callback) {
@@ -364,46 +367,48 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
-function chainerNext(idStart) {
-    getPageById(idStart, function (prev, next) {
-        globCount++;
-        console.log('Count: ' + globCount + ', next: ' + next);
-
-        if ((next != 0) && (globCount < maxToCheck)) {
-            chainerNext(next);
-        }
-        else {
-            console.log('We went forward [>>] and ' + globCount + ' pages got.');
-            done();
-        }
-    });
-}
-
 function chainerPrev(idStart) {
     getPageById(idStart, function (prev, next) {
-        globCount++;
-        console.log('Count: ' + globCount + ', prev: ' + prev);
+        prevCount++;
+        console.log('Count: ' + prevCount + ', prev: ' + prev);
 
-        if ((prev != 0) && (globCount < maxToCheck)) {
+        if ((prev != 0) && (prevCount < maxToCheck)) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + globCount + ' hidden pages.');
+            console.log('We went back [<<] and got ' + prevCount + ' hidden pages.');
+            prevDone = true;
             done();
         }
     });
 }
 
+function chainerNext(idStart) {
+    getPageById(idStart, function (prev, next) {
+        nextCount++;
+        console.log('Count: ' + nextCount + ', next: ' + next);
+
+        if ((next != 0) && (nextCount < maxToCheck)) {
+            chainerNext(next);
+        }
+        else {
+            console.log('We went forward [>>] and ' + nextCount + ' pages got.');
+            nextDone = true;
+            done();
+        }
+    });
+}
 
 function done() {
-    //mongoose.disconnect();
-    var time = (new Date().getTime() - start)/1000;
-
-    if (time > 60) {
-        console.log('Working time: ' + time / 60 + ' min.');
-    } else {
-        console.log('Working time: ' + time + ' sec.');
+    if (prevDone && nextDone) {
+        var time = (new Date().getTime() - start) / 1000;
+        if (time > 60) {
+            console.log('Working time: ' + time / 60 + ' min.');
+        } else {
+            console.log('Working time: ' + time + ' sec.');
+        }
     }
+    //mongoose.disconnect();
 }
 
 function main() {
@@ -429,9 +434,9 @@ function main() {
             }
 
             getMainPage(function (id) {
-                console.log('Got id: ' + id + ' from main page and starting chainer.');
-                //chainerNext(id);
+                console.log('Got id: ' + id + ' from main page and starting chainer to prev and next.');
                 chainerPrev(id);
+                chainerNext(id);
             });
         });
     });
