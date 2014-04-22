@@ -20,13 +20,17 @@ function toggleLogo(){
 }
 function changeState(numOfState){
 	if(numOfState == 0){
-
+		$('.logo-big').css({"display" : "block"});
+		$('#search').css({'width': '90%', 'position': 'fixed', 'z-index': '10000', 'top': '50%', 'margin-top': '-105px'});
+		$(".searchresult").css({"display":"none"});
+		$("content").css({"display":"none"});
+		$(".content_ul").empty();
 	}
 	if(numOfState == 1){
 		$('.logo-big').css("display", "none");
 		$('#search').css({'width': '50%',
 		'position': 'fixed',
-		'top': '5%', 'margin-top':'0'})
+		'top': '2%', 'margin-top':'0'})
 		$(".searchresult").css({"display":"none"});
 		$("content").css({"display":"none"});
 		$(".content_ul").empty();
@@ -35,7 +39,7 @@ function changeState(numOfState){
 function detectKeys(e) {
 	var curr = $('.searchresult_ul').find('li.selected').first();
 
-	e.preventDefault();
+	// e.preventDefault();
 	if (e.which == 38) {
 		if(curr.text().length == 0){
 			curr = $('.searchresult_ul').find('li').last();
@@ -43,6 +47,8 @@ function detectKeys(e) {
 			curr.removeClass('selected');
 			curr = curr.prev();
 		}
+		$('#searchText').value  = $('#searchText').value;
+		console.log('fired');
     	$('#searchText').val(curr.text());
     	curr.toggleClass('selected');
     	//up - prev
@@ -61,6 +67,7 @@ function detectKeys(e) {
     else if (e.which == 13) {
 		var q = $('#searchText').val();
 		Search.simpleSearch(q);
+		History.pushState(null, null, liveurl + q);
 		$('#searchText').blur();
     }
 }
@@ -69,4 +76,14 @@ $(".searchresult").on("mouseenter", ".searchresult_ul li", function() {
 })
 $(".searchresult").on("mouseleave", ".searchresult_ul li", function() {
  	$(this).removeClass('selected');
+})
+History.Adapter.bind(window, 'statechange', function(){
+	var State = History.getState(),
+		newQuery = State.hash.substring(7, State.hash.length);
+	$('#searchText').val(newQuery);
+	if(newQuery!==''){
+		Search.simpleSearch(newQuery);	
+	} else {
+		changeState(0);
+	}
 })

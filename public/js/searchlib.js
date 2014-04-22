@@ -78,13 +78,12 @@ $(".searchresult").on("click", ".searchresult_ul li", function() {
 		pageurl = liveurl + content;
 	$("#searchText").val(content);
 	Search.simpleSearch(content);
-	
-
-
+	History.pushState(null, null, pageurl);	
 })
 
 $('#searchText').on('input', function() {
 	var query = $(this).val();
 	Search.liveSearch(query);
+
 });
-$('#searchText').on('keyup', detectKeys );
+$('#searchText').on('keydown', detectKeys );
