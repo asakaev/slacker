@@ -15,7 +15,7 @@
 // TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
 // TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
 // TODO: if error delete from db
-// TODO: чейнера можно в 2 раза быстрее сделать если найти способ из середины в два конца бежать
+// TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
 
 var start = new Date().getTime();
 
@@ -29,7 +29,7 @@ var mongoose = require('mongoose');
 
 var extraFromDb;
 var lastCheckedId;
-const maxToCheck = 30;
+const maxToCheck = 5;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -63,7 +63,8 @@ var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
-    lastCheckedId: Number
+    lastCheckedId: Number,
+    idWasAdded: Date
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -115,13 +116,14 @@ function getMainPage(callback) {
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
 
-//            // If there is date in DB then update it, else create new
-//            if (extraFromDb) {
+            // If there is date in DB then update it, else create new
+            if (extraFromDb) {
 //                extraFromDb.lastCheckedId = topId;
-//                extraFromDb.save();
-//            } else {
-//                new extra({ lastCheckedId: topId }).save();
-//            }
+                extraFromDb.idWasAdded = new Date();
+                extraFromDb.save();
+            } else {
+                new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
+            }
 
             var arr = [];
             var idx;
@@ -389,7 +391,7 @@ function convertDate(strInput) {
 }
 
 function chainerPrev(idStart) {
-    getPageById(idStart, function (prev, next) {
+    getPageById(idStart, false, function (prev, next) {
         prevCount++;
         console.log('Count: ' + prevCount + ' this id: ' + idStart + ', prev: ' + prev);
 
@@ -405,7 +407,7 @@ function chainerPrev(idStart) {
 }
 
 function chainerNext(idStart) {
-    getPageById(idStart, function (prev, next) {
+    getPageById(idStart, false, function (prev, next) {
         nextCount++;
         console.log('Count: ' + nextCount + ', next: ' + next);
 
@@ -429,6 +431,10 @@ function done() {
             console.log('Working time: ' + time + ' sec.');
         }
     }
+
+    // TODO: сделать нормально без дубля на все случаи жизни
+    var time = (new Date().getTime() - start) / 1000;
+    console.log('Working time: ' + time + ' sec.');
     //mongoose.disconnect();
 }
 
@@ -445,10 +451,12 @@ function main() {
         query.exec(function (err, res) {
             if (err) console.log(err);
             extraFromDb = res;
+            var idWasAdded;
 
             // If there is last update Date in DB then use it, otherwise null
             if (extraFromDb) {
                 lastCheckedId = extraFromDb.lastCheckedId;
+                idWasAdded = extraFromDb.idWasAdded;
                 console.log('Last time top ID was: ' + lastCheckedId);
             } else {
                 console.log('There is no last updated ID in database.');
@@ -457,17 +465,24 @@ function main() {
             getMainPage(function (id, topIDs) {
                 if (topIDs) {
                     topIDsCount = topIDs.length;
-                    var isAre = topIDsCount == 1 ? ' is ' : ' are ';
-                    console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page and top ID is ' + id + '.');
 
-                    var i;
-                    for (i = 0; i < topIDsCount; i++) {
-                        getPageById(topIDs[i], function () {
-                            topIDsChecked++;
-                            if (topIDsChecked == topIDsCount) {
-                                console.log('top is DONE!!!');
-                            }
-                        });
+                    if (topIDsCount == 0) {
+                        console.log('Nothing new since ' + idWasAdded + '.');
+                        done();
+                    } else {
+                        var isAre = topIDsCount == 1 ? ' is ' : ' are ';
+                        console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
+                            + idWasAdded + ' and top ID is ' + id + '.');
+
+                        var i;
+                        for (i = 0; i < topIDsCount; i++) {
+                            getPageById(topIDs[i], function () {
+                                topIDsChecked++;
+                                if (topIDsChecked == topIDsCount) {
+                                    console.log('top is DONE!!!');
+                                }
+                            });
+                        }
                     }
                 } else {
                     chainerPrev(id);
