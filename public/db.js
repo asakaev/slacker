@@ -12,3 +12,4 @@ var sputnikSchema = mongoose.Schema({
 
 mongoose.model('Vacancy', sputnikSchema);
 mongoose.connect('mongodb://localhost/work');
+//
