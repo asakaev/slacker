@@ -102,3 +102,9 @@ input[type=text]::-ms-clear {
 li.selected{
 	background: #D8D8D8;
 }
+#features{
+	float: right;
+}
+.nav li{
+	display: inline-block;
+}
