@@ -16,3 +16,5 @@ node_modules
 
 .idea
 dictionary/misc
+public/pics/skrudj.jpg
+db.js
