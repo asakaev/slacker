@@ -11,9 +11,11 @@
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
-// TODO: lastAddedVacancyId сохранять. он только читается пока.
-// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastAddedVacancyId)
+// TODO: lastCheckedId сохранять. он только читается пока.
+// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
 // TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
+// TODO: if error delete from db
+// TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
 
 var start = new Date().getTime();
 
@@ -26,8 +28,8 @@ var translator = new Iconv(fromEnc, toEnc);
 var mongoose = require('mongoose');
 
 var extraFromDb;
-var lastAddedVacancyId;
-const maxToCheck = 30;
+var lastCheckedId;
+const maxToCheck = 5;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -61,8 +63,8 @@ var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
-    updatedSputnik: Date,
-    lastAddedVacancyId: Number
+    lastCheckedId: Number,
+    idWasAdded: Date
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -76,14 +78,15 @@ var extra = mongoose.model('Extra', extraSchema);
 //     if (this.vacCountOnPager == ++this.vacChecked) done();
 // };
 
-//var categoriesCount;
+var categoriesCount;
 var totalVacancies = 0;
 var globCount = 0;
 var prevCount = 0;
 var prevDone = false;
 var nextCount = 0;
 var nextDone = false;
-
+var topIDsCount = 0;
+var topIDsChecked = 0;
 
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
@@ -92,7 +95,6 @@ function getMainPage(callback) {
 
             var categories = $('.st-cats-list.two.job .cat');
             categoriesCount = categories.length;
-            console.log('Categories count: ' + categoriesCount);
 
             // считаем количество всех вакансий
             categories.each(function (index) {
@@ -100,7 +102,7 @@ function getMainPage(callback) {
                 count = parseInt(count.substring(2, count.length - 1));
                 totalVacancies += count;
             });
-            console.log('Total vacancies: ' + totalVacancies);
+            console.log('There are ' + totalVacancies + ' vacancies in ' + categoriesCount + ' categories.');
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
@@ -108,44 +110,54 @@ function getMainPage(callback) {
 
             if (top15count != 15) {
                 console.log('WRN: Top 15 structure is changed!');
+                // TODO: exit if error here
             }
 
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
 
-            // если вызываем с колбеком, то передаем туда id верхней вакансии
-            if (callback) {
-                callback(topId);
+            // If there is date in DB then update it, else create new
+            if (extraFromDb) {
+//                extraFromDb.lastCheckedId = topId;
+                extraFromDb.idWasAdded = new Date();
+                extraFromDb.save();
+            } else {
+                new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
             }
 
+            var arr = [];
+            var idx;
+            // Check if there is something we already know in top15
+            for (idx = 0; idx < top15count; idx++) {
+                var id = top15[idx].children["1"].children["0"].attribs.href;
+                id = parseInt(id.split('=')["1"]);
 
-            // TODO: умная штука которая сама понимает что 14 можно параллельно а на 15 запустить цепочку
-            // TODO: чейнера можно в 2 раза быстрее сделать если найти способ из середины в два конца бежать
-//            var index;
-//            for (index = 0; index < top15count; index++) {
-//                var id = top15[index].children["1"].children["0"].attribs.href;
-//                id = parseInt(id.substring(21, id.length));
-//                console.log(index + ': ' + id);
-//
-////                if (id == lastAddedVacancyId) {
-////                    console.log('Stopped cause this id already added. * Kind of lol.');
-////                    break;
-////                }
-//
-//                // если последний элемент
-//                if (index == top15count - 1) {
-//                    // chain fx if last
-//                }
-//                else {
-//                    // everyday code fx
-//                    //getPageById(id);
-//                }
-//            }
+                if (id != lastCheckedId) {
+                    arr.push(id);
+                } else {
+                    break;
+                }
+            }
+
+            var top15IsAllNew = false;
+            // If there is all 15 ISs is new to us
+            if (idx == top15count) {
+                top15IsAllNew = true;
+            }
+
+            // Callback: if all new then just topId else arr with NEW IDs
+            if (callback) {
+                if (top15IsAllNew) {
+                    callback(topId);
+                } else {
+                    callback(topId, arr);
+                }
+            }
         }
     })
 }
 
-function getPageById(id, callback) {
+function getPageById(id, isTopBurst, callback) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
@@ -267,10 +279,10 @@ function getPageById(id, callback) {
             }
 
             if (isVacancy) {
-                saveVacancyToDb(obj);
+                saveVacancyToDb(obj, isTopBurst);
             }
             else {
-                saveResumeToDb(obj);
+                saveResumeToDb(obj, isTopBurst);
             }
 
             var next = $('.next');
@@ -299,7 +311,13 @@ function getPageById(id, callback) {
     });
 }
 
-function saveVacancyToDb(obj) {
+function incAndCheckTopBurst() {
+    if (++topIDsChecked == topIDsCount) {
+        console.log('Really DONE with parallel burst!');
+    }
+}
+
+function saveVacancyToDb(obj, isTopBurst) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -321,16 +339,19 @@ function saveVacancyToDb(obj) {
                     //keeper.vacAddedToDb++;
                     //keeper.incrementAndCheck();
                 }
+                // TODO: disconnect here and count time
+                if (isTopBurst) incAndCheckTopBurst();
             });
         }
         else {
             console.log('Already here id: ' + obj.vse35Id);
-            //keeper.incrementAndCheck();
+            // TODO: disconnect here and count time
+            if (isTopBurst) incAndCheckTopBurst();
         }
     });
 }
 
-function saveResumeToDb(obj) {
+function saveResumeToDb(obj, isTopBurst) {
     // find if exist and save to db
     resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -370,9 +391,9 @@ function convertDate(strInput) {
 }
 
 function chainerPrev(idStart) {
-    getPageById(idStart, function (prev, next) {
+    getPageById(idStart, false, function (prev, next) {
         prevCount++;
-        console.log('Count: ' + prevCount + ', prev: ' + prev);
+        console.log('Count: ' + prevCount + ' this id: ' + idStart + ', prev: ' + prev);
 
         if ((prev != 0) && (prevCount < maxToCheck)) {
             chainerPrev(prev);
@@ -386,7 +407,7 @@ function chainerPrev(idStart) {
 }
 
 function chainerNext(idStart) {
-    getPageById(idStart, function (prev, next) {
+    getPageById(idStart, false, function (prev, next) {
         nextCount++;
         console.log('Count: ' + nextCount + ', next: ' + next);
 
@@ -410,6 +431,10 @@ function done() {
             console.log('Working time: ' + time + ' sec.');
         }
     }
+
+    // TODO: сделать нормально без дубля на все случаи жизни
+    var time = (new Date().getTime() - start) / 1000;
+    console.log('Working time: ' + time + ' sec.');
     //mongoose.disconnect();
 }
 
@@ -422,23 +447,47 @@ function main() {
         }
 
         var query = extra.findOne();
-        query.where('lastAddedVacancyId').ne(null);
+        query.where('lastCheckedId').ne(null);
         query.exec(function (err, res) {
             if (err) console.log(err);
             extraFromDb = res;
+            var idWasAdded;
 
             // If there is last update Date in DB then use it, otherwise null
             if (extraFromDb) {
-                lastAddedVacancyId = extraFromDb.lastAddedVacancyId;
-                console.log('Last time top ID was: ' + lastAddedVacancyId);
+                lastCheckedId = extraFromDb.lastCheckedId;
+                idWasAdded = extraFromDb.idWasAdded;
+                console.log('Last time top ID was: ' + lastCheckedId);
             } else {
                 console.log('There is no last updated ID in database.');
             }
 
-            getMainPage(function (id) {
-                console.log('Got id: ' + id + ' from main page and starting chainer to prev and next.');
-                chainerPrev(id);
-                chainerNext(id);
+            getMainPage(function (id, topIDs) {
+                if (topIDs) {
+                    topIDsCount = topIDs.length;
+
+                    if (topIDsCount == 0) {
+                        console.log('Nothing new since ' + idWasAdded + '.');
+                        done();
+                    } else {
+                        var isAre = topIDsCount == 1 ? ' is ' : ' are ';
+                        console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
+                            + idWasAdded + ' and top ID is ' + id + '.');
+
+                        var i;
+                        for (i = 0; i < topIDsCount; i++) {
+                            getPageById(topIDs[i], function () {
+                                topIDsChecked++;
+                                if (topIDsChecked == topIDsCount) {
+                                    console.log('top is DONE!!!');
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    chainerPrev(id);
+                    chainerNext(id);
+                }
             });
         });
     });

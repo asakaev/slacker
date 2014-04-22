@@ -30,8 +30,7 @@ var sputnikSchema = mongoose.Schema({
 var vacancy = mongoose.model('Vacancy', sputnikSchema);
 
 var extraSchema = mongoose.Schema({
-    updatedSputnik: Date,
-    lastAddedVacancyId: Number
+    updatedSputnik: Date
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
