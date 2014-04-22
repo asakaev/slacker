@@ -11,9 +11,10 @@
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
-// TODO: lastAddedVacancyId сохранять. он только читается пока.
-// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastAddedVacancyId)
+// TODO: lastCheckedId сохранять. он только читается пока.
+// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
 // TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
+// TODO: if error delete from db
 
 var start = new Date().getTime();
 
@@ -26,7 +27,7 @@ var translator = new Iconv(fromEnc, toEnc);
 var mongoose = require('mongoose');
 
 var extraFromDb;
-var lastAddedVacancyId;
+var lastCheckedId;
 const maxToCheck = 30;
 
 var db = mongoose.connection;
@@ -61,8 +62,7 @@ var resumesSchema = getSchemaForCollection('vse35resumes');
 var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
-    updatedSputnik: Date,
-    lastAddedVacancyId: Number
+    lastCheckedId: Number
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -113,6 +113,14 @@ function getMainPage(callback) {
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
 
+            // If there is date in DB then update it, else create new
+            if (extraFromDb) {
+                extraFromDb.lastCheckedId = topId;
+                extraFromDb.save();
+            } else {
+                new extra({ lastCheckedId: topId }).save();
+            }
+
             // если вызываем с колбеком, то передаем туда id верхней вакансии
             if (callback) {
                 callback(topId);
@@ -127,7 +135,7 @@ function getMainPage(callback) {
 //                id = parseInt(id.substring(21, id.length));
 //                console.log(index + ': ' + id);
 //
-////                if (id == lastAddedVacancyId) {
+////                if (id == lastCheckedId) {
 ////                    console.log('Stopped cause this id already added. * Kind of lol.');
 ////                    break;
 ////                }
@@ -422,15 +430,15 @@ function main() {
         }
 
         var query = extra.findOne();
-        query.where('lastAddedVacancyId').ne(null);
+        query.where('lastCheckedId').ne(null);
         query.exec(function (err, res) {
             if (err) console.log(err);
             extraFromDb = res;
 
             // If there is last update Date in DB then use it, otherwise null
             if (extraFromDb) {
-                lastAddedVacancyId = extraFromDb.lastAddedVacancyId;
-                console.log('Last time top ID was: ' + lastAddedVacancyId);
+                lastCheckedId = extraFromDb.lastCheckedId;
+                console.log('Last time top ID was: ' + lastCheckedId);
             } else {
                 console.log('There is no last updated ID in database.');
             }
