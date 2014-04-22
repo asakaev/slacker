@@ -15,6 +15,7 @@
 // TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
 // TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
 // TODO: if error delete from db
+// TODO: чейнера можно в 2 раза быстрее сделать если найти способ из середины в два конца бежать
 
 var start = new Date().getTime();
 
@@ -76,14 +77,15 @@ var extra = mongoose.model('Extra', extraSchema);
 //     if (this.vacCountOnPager == ++this.vacChecked) done();
 // };
 
-//var categoriesCount;
+var categoriesCount;
 var totalVacancies = 0;
 var globCount = 0;
 var prevCount = 0;
 var prevDone = false;
 var nextCount = 0;
 var nextDone = false;
-
+var topIDsCount = 0;
+var topIDsChecked = 0;
 
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
@@ -92,7 +94,6 @@ function getMainPage(callback) {
 
             var categories = $('.st-cats-list.two.job .cat');
             categoriesCount = categories.length;
-            console.log('Categories count: ' + categoriesCount);
 
             // считаем количество всех вакансий
             categories.each(function (index) {
@@ -100,7 +101,7 @@ function getMainPage(callback) {
                 count = parseInt(count.substring(2, count.length - 1));
                 totalVacancies += count;
             });
-            console.log('Total vacancies: ' + totalVacancies);
+            console.log('There are ' + totalVacancies + ' vacancies in ' + categoriesCount + ' categories.');
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
@@ -108,47 +109,48 @@ function getMainPage(callback) {
 
             if (top15count != 15) {
                 console.log('WRN: Top 15 structure is changed!');
+                // TODO: exit if error here
             }
 
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
 
-            // If there is date in DB then update it, else create new
-            if (extraFromDb) {
-                extraFromDb.lastCheckedId = topId;
-                extraFromDb.save();
-            } else {
-                new extra({ lastCheckedId: topId }).save();
-            }
-
-            // если вызываем с колбеком, то передаем туда id верхней вакансии
-            if (callback) {
-                callback(topId);
-            }
-
-
-            // TODO: умная штука которая сама понимает что 14 можно параллельно а на 15 запустить цепочку
-            // TODO: чейнера можно в 2 раза быстрее сделать если найти способ из середины в два конца бежать
-//            var index;
-//            for (index = 0; index < top15count; index++) {
-//                var id = top15[index].children["1"].children["0"].attribs.href;
-//                id = parseInt(id.substring(21, id.length));
-//                console.log(index + ': ' + id);
-//
-////                if (id == lastCheckedId) {
-////                    console.log('Stopped cause this id already added. * Kind of lol.');
-////                    break;
-////                }
-//
-//                // если последний элемент
-//                if (index == top15count - 1) {
-//                    // chain fx if last
-//                }
-//                else {
-//                    // everyday code fx
-//                    //getPageById(id);
-//                }
+//            // If there is date in DB then update it, else create new
+//            if (extraFromDb) {
+//                extraFromDb.lastCheckedId = topId;
+//                extraFromDb.save();
+//            } else {
+//                new extra({ lastCheckedId: topId }).save();
 //            }
+
+            var arr = [];
+            var idx;
+            // Check if there is something we already know in top15
+            for (idx = 0; idx < top15count; idx++) {
+                var id = top15[idx].children["1"].children["0"].attribs.href;
+                id = parseInt(id.split('=')["1"]);
+
+                if (id != lastCheckedId) {
+                    arr.push(id);
+                } else {
+                    break;
+                }
+            }
+
+            var top15IsAllNew = false;
+            // If there is all 15 ISs is new to us
+            if (idx == top15count) {
+                top15IsAllNew = true;
+            }
+
+            // Callback: if all new then just topId else arr with NEW IDs
+            if (callback) {
+                if (top15IsAllNew) {
+                    callback(topId);
+                } else {
+                    callback(topId, arr);
+                }
+            }
         }
     })
 }
@@ -380,7 +382,7 @@ function convertDate(strInput) {
 function chainerPrev(idStart) {
     getPageById(idStart, function (prev, next) {
         prevCount++;
-        console.log('Count: ' + prevCount + ', prev: ' + prev);
+        console.log('Count: ' + prevCount + ' this id: ' + idStart + ', prev: ' + prev);
 
         if ((prev != 0) && (prevCount < maxToCheck)) {
             chainerPrev(prev);
@@ -443,10 +445,25 @@ function main() {
                 console.log('There is no last updated ID in database.');
             }
 
-            getMainPage(function (id) {
-                console.log('Got id: ' + id + ' from main page and starting chainer to prev and next.');
+            getMainPage(function (id, topIDs) {
+                if (topIDs) {
+                    topIDsCount = topIDs.length;
+                    var isAre = topIDsCount == 1 ? ' is ' : ' are ';
+                    console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page and top ID is ' + id + '.');
+
+                    var i;
+                    for (i = 0; i < topIDsCount; i++) {
+                        getPageById(topIDs[i], function(){
+                            topIDsChecked++;
+                            if (topIDsChecked == topIDsCount) {
+                                console.log('top is DONE!!!');
+                            }
+                        });
+                    }
+                } else {
                 chainerPrev(id);
                 chainerNext(id);
+                }
             });
         });
     });
