@@ -155,7 +155,7 @@ function getMainPage(callback) {
     })
 }
 
-function getPageById(id, callback) {
+function getPageById(id, isTopBurst, callback) {
     request({ url: 'http://vse35.ru/job/element.php?print=y&eid=' + id, encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
@@ -277,10 +277,10 @@ function getPageById(id, callback) {
             }
 
             if (isVacancy) {
-                saveVacancyToDb(obj);
+                saveVacancyToDb(obj, isTopBurst);
             }
             else {
-                saveResumeToDb(obj);
+                saveResumeToDb(obj, isTopBurst);
             }
 
             var next = $('.next');
@@ -309,7 +309,13 @@ function getPageById(id, callback) {
     });
 }
 
-function saveVacancyToDb(obj) {
+function incAndCheckTopBurst() {
+    if (++topIDsChecked == topIDsCount) {
+        console.log('Really DONE with parallel burst!');
+    }
+}
+
+function saveVacancyToDb(obj, isTopBurst) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -331,16 +337,19 @@ function saveVacancyToDb(obj) {
                     //keeper.vacAddedToDb++;
                     //keeper.incrementAndCheck();
                 }
+                // TODO: disconnect here and count time
+                if (isTopBurst) incAndCheckTopBurst();
             });
         }
         else {
             console.log('Already here id: ' + obj.vse35Id);
-            //keeper.incrementAndCheck();
+            // TODO: disconnect here and count time
+            if (isTopBurst) incAndCheckTopBurst();
         }
     });
 }
 
-function saveResumeToDb(obj) {
+function saveResumeToDb(obj, isTopBurst) {
     // find if exist and save to db
     resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
@@ -453,7 +462,7 @@ function main() {
 
                     var i;
                     for (i = 0; i < topIDsCount; i++) {
-                        getPageById(topIDs[i], function(){
+                        getPageById(topIDs[i], function () {
                             topIDsChecked++;
                             if (topIDsChecked == topIDsCount) {
                                 console.log('top is DONE!!!');
@@ -461,8 +470,8 @@ function main() {
                         });
                     }
                 } else {
-                chainerPrev(id);
-                chainerNext(id);
+                    chainerPrev(id);
+                    chainerNext(id);
                 }
             });
         });
