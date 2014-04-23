@@ -18,21 +18,6 @@ html
           ul.nav
             li#top top15
             li#login_button(onclick='VK.Auth.login(authInfo);')
- 
-  
-    script(language='javascript')
-      VK.init({
-      apiId: 4323440
-      });
-      function authInfo(response) {
-      if (response.session) {
-      alert('user: '+response.session.mid);
-      } else {
-      alert('not auth');
-      }
-      }
-      VK.Auth.getLoginStatus(authInfo);
-      VK.UI.button('login_button');
       #content
         ul.content_ul
     //-Content 
