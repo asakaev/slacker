@@ -438,6 +438,27 @@ function done() {
     //mongoose.disconnect();
 }
 
+var idWasAdded;
+
+function getLastCheckedId(callback) {
+    var query = extra.findOne();
+    query.where('lastCheckedId').ne(null);
+    query.exec(function (err, res) {
+        if (err) console.log(err);
+        extraFromDb = res;
+
+        // If there is last update Date in DB then use it, otherwise null
+        if (extraFromDb) {
+            lastCheckedId = extraFromDb.lastCheckedId;
+            idWasAdded = extraFromDb.idWasAdded;
+            console.log('Last time top ID was: ' + lastCheckedId);
+        } else {
+            console.log('There is no last updated ID in database.');
+        }
+        if (callback) callback();
+    });
+}
+
 function main() {
     console.log('Crawler for Vse35 started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
@@ -446,22 +467,7 @@ function main() {
             process.exit(1);
         }
 
-        var query = extra.findOne();
-        query.where('lastCheckedId').ne(null);
-        query.exec(function (err, res) {
-            if (err) console.log(err);
-            extraFromDb = res;
-            var idWasAdded;
-
-            // If there is last update Date in DB then use it, otherwise null
-            if (extraFromDb) {
-                lastCheckedId = extraFromDb.lastCheckedId;
-                idWasAdded = extraFromDb.idWasAdded;
-                console.log('Last time top ID was: ' + lastCheckedId);
-            } else {
-                console.log('There is no last updated ID in database.');
-            }
-
+        getLastCheckedId(function () {
             getMainPage(function (id, topIDs) {
                 if (topIDs) {
                     topIDsCount = topIDs.length;
