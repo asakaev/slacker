@@ -380,7 +380,7 @@ function checkChainerIsDone() {
 
 function done(param) {
     var time = (new Date().getTime() - start) / 1000;
-    time = time > 60 ? time / 60 + ' min.' : time + ' sec.';
+    time = time < 60 ? time + ' sec.' : time / 60 + ' min.';
 
     if (param === 'burst') {
         console.log('Done burst in ' + time);
