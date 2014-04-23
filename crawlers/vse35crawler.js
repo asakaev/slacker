@@ -30,6 +30,7 @@ var mongoose = require('mongoose');
 var extraFromDb;
 var lastCheckedId;
 const maxToCheck = 5;
+var idWasAdded;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -291,12 +292,6 @@ function getPageById(id, isTopBurst, callback) {
     });
 }
 
-function incAndCheckTopBurst() {
-    if (++topIDsChecked == topIDsCount) {
-        console.log('Really DONE with parallel burst!');
-    }
-}
-
 function saveVacancyToDb(obj, isTopBurst) {
     // find if exist and save to db
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
@@ -402,23 +397,35 @@ function chainerNext(idStart) {
     });
 }
 
-function done() {
-    if (prevDone && nextDone) {
-        var time = (new Date().getTime() - start) / 1000;
-        if (time > 60) {
-            console.log('Working time: ' + time / 60 + ' min.');
-        } else {
-            console.log('Working time: ' + time + ' sec.');
-        }
+function incAndCheckTopBurst() {
+    if (++topIDsChecked == topIDsCount) {
+        console.log('Really DONE with parallel burst!');
+        done('burst');
     }
-
-    // TODO: сделать нормально без дубля на все случаи жизни
-    var time = (new Date().getTime() - start) / 1000;
-    console.log('Working time: ' + time + ' sec.');
-    //mongoose.disconnect();
 }
 
-var idWasAdded;
+function checkChainerIsDone() {
+    //prevDone && nextDone
+}
+
+function done(param) {
+    var time = (new Date().getTime() - start) / 1000;
+    if (time > 60) {
+        time = time / 60 + ' min.';
+    } else {
+        time = time + ' sec.';
+    }
+
+    if (param == 'burst') {
+        console.log('Done burst in ' + time);
+    } else {
+        console.log('Done chainer in ' + time);
+    }
+
+    mongoose.disconnect(function () {
+        process.exit(0);
+    });
+}
 
 function getLastCheckedId(callback) {
     var query = extra.findOne();
