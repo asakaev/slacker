@@ -18,7 +18,7 @@ var Iconv = require('iconv').Iconv;
 var translator = new Iconv('cp1251', 'utf-8');
 var mongoose = require('mongoose');
 
-var extraFromDb;
+var extraFromDB;
 var lastCheckedId;
 var idWasAdded;
 const maxToCheck = 5;
@@ -81,6 +81,17 @@ cK.check = function () {
     }
 };
 
+function updateExtra(topId) {
+    // If there is date in DB then update it, else create new
+    if (extraFromDB) {
+//                extraFromDB.lastCheckedId = topId;
+        extraFromDB.idWasAdded = new Date();
+        extraFromDB.save();
+    } else {
+        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
+    }
+}
+
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
@@ -97,15 +108,7 @@ function getMainPage(callback) {
 
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
-
-            // If there is date in DB then update it, else create new
-            if (extraFromDb) {
-//                extraFromDb.lastCheckedId = topId;
-                extraFromDb.idWasAdded = new Date();
-                extraFromDb.save();
-            } else {
-                new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
-            }
+            updateExtra(topId);
 
             var arr = [];
             // Check if there is something we already know in top15
@@ -389,12 +392,12 @@ function getLastCheckedId(callback) {
     query.where('lastCheckedId').ne(null);
     query.exec(function (err, res) {
         if (err) console.log(err);
-        extraFromDb = res;
+        extraFromDB = res;
 
         // If there is last update Date in DB then use it, otherwise null
-        if (extraFromDb) {
-            lastCheckedId = extraFromDb.lastCheckedId;
-            idWasAdded = extraFromDb.idWasAdded;
+        if (extraFromDB) {
+            lastCheckedId = extraFromDB.lastCheckedId;
+            idWasAdded = extraFromDB.idWasAdded;
             console.log('The last time top ID was ' + lastCheckedId + '.');
         } else {
             console.log('There is no last updated ID in database.');
