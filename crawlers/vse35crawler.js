@@ -3,7 +3,7 @@
 
 // TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
-// TODO: refactor saveVacToDB & saveResumeToDB to one function
+// TODO: refactor saveVacToDB & saveResumeToDB to one function. дублирование всёровно
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
 // TODO: lastCheckedId сохранять. он только читается пока.
@@ -252,12 +252,7 @@ function getPageById(id, isTopBurst, callback) {
                 }
             }
 
-            if (isVacancy) {
-                saveVacancyToDb(obj, isTopBurst);
-            }
-            else {
-                saveResumeToDb(obj, isTopBurst);
-            }
+            saveToDB(obj, isTopBurst, isVacancy);
 
             var next = $('.next');
             var nextId = 0;
@@ -283,67 +278,52 @@ function getPageById(id, isTopBurst, callback) {
     });
 }
 
-function saveVacancyToDb(obj, isTopBurst) {
-    // find if exist and save to db
+function saveVacancy(obj, isTopBurst) {
+    new vacancy(obj).save(function (err) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+        else {
+            console.log('Added to db: ' + obj.vse35Id);
+            if (isTopBurst) incAndCheckTopBurst();
+        }
+    });
+}
+
+function saveResume(obj, isTopBurst) {
+    new resume(obj).save(function (err) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+        else {
+            console.log('Added resume to db: ' + obj.vse35Id);
+            if (isTopBurst) incAndCheckTopBurst();
+        }
+    });
+}
+
+function saveToDB(obj, isTopBurst, isVacancy) {
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
             console.log(err);
             //mongoose.disconnect();
             process.exit(1);
         }
+        var text = isVacancy ? 'Vacancy' : 'Resume';
 
-        // if not found then save to db
-        if (!id) {
-            new vacancy(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-                else {
-                    console.log('Added to db: ' + obj.vse35Id);
-                    //keeper.vacAddedToDb++;
-                    //keeper.incrementAndCheck();
-                }
-                // TODO: disconnect here and count time
-                if (isTopBurst) incAndCheckTopBurst();
-            });
-        }
-        else {
-            console.log('Already here id: ' + obj.vse35Id);
-            // TODO: disconnect here and count time
+        if (id) {
+            console.log(text + ' with id ' + obj.vse35Id + ' is already here.');
             if (isTopBurst) incAndCheckTopBurst();
-        }
-    });
-}
-
-function saveResumeToDb(obj, isTopBurst) {
-    // find if exist and save to db
-    resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
-        }
-
-        // if not found then save to db
-        if (!id) {
-            new resume(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-                else {
-                    console.log('Added resume to db: ' + obj.vse35Id);
-                    //keeper.vacAddedToDb++;
-                    //keeper.incrementAndCheck();
-                }
-            });
-        }
-        else {
-            console.log('Already resume here id: ' + obj.vse35Id);
-            //keeper.incrementAndCheck();
+        } else {
+            if (isVacancy) {
+                saveVacancy(obj, isTopBurst);
+            } else {
+                saveResume(obj, isTopBurst);
+            }
         }
     });
 }
@@ -430,7 +410,7 @@ function getLastCheckedId(callback) {
         if (extraFromDb) {
             lastCheckedId = extraFromDb.lastCheckedId;
             idWasAdded = extraFromDb.idWasAdded;
-            console.log('Last time top ID was: ' + lastCheckedId);
+            console.log('The last time top ID was ' + lastCheckedId + '.');
         } else {
             console.log('There is no last updated ID in database.');
         }
@@ -439,9 +419,8 @@ function getLastCheckedId(callback) {
 }
 
 function runBurstOrChainer(id, topIDs) {
-    // If we can burst top15
-    if (false) {
-//    if (topIDs) {
+//    if (false) {
+    if (topIDs) {
         topIDsCount = topIDs.length;
         if (topIDsCount == 0) {
             console.log('Nothing new since ' + idWasAdded + '.');
