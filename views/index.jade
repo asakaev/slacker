@@ -14,15 +14,33 @@ html
             input#searchText(type='text', name='req1')
           .searchresult
             ul.searchresult_ul
-        //- #features
-        //-   ul.nav
-        //-     li#top top15
-        //-     li#lk Личный кабинет
+        #features
+          ul.nav
+            li#top top15
+            li#login_button(onclick='VK.Auth.login(authInfo);')
+ 
+  
+    script(language='javascript')
+      VK.init({
+      apiId: 1,
+      nameTransportPath: '/xd_receiver.html'
+      });
+      function authInfo(response) {
+      if (response.session) {
+      alert('user: '+response.session.mid);
+      } else {
+      alert('not auth');
+      }
+      }
+      VK.Auth.getLoginStatus(authInfo);
+      VK.UI.button('login_button');
       #content
         ul.content_ul
     //-Content 
+
     script(src='/js/jquery.min.js')
     script(src='/js/jquery.history.js')
+    script(src='http://vk.com/js/api/openapi.js', type='text/javascript')
     script(src='/js/utilities.js')
     script(src='/js/searchlib.js')
     //-Scripts 
