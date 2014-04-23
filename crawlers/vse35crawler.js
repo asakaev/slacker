@@ -24,6 +24,10 @@ var extraFromDb;
 var lastCheckedId;
 const maxToCheck = 5;
 var idWasAdded;
+var prevCount = 0;
+var prevDone = false;
+var nextCount = 0;
+var nextDone = false;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -63,21 +67,14 @@ var extraSchema = mongoose.Schema({
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
 
-
-// var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
-// keeper.vacCountOnPager = 0;
-// keeper.vacChecked = 0;
-// keeper.vacAddedToDb = 0;
-// keeper.incrementAndCheck = function () {
-//     if (this.vacCountOnPager == ++this.vacChecked) done();
-// };
-
-var prevCount = 0;
-var prevDone = false;
-var nextCount = 0;
-var nextDone = false;
-var topIDsCount = 0;
-var topIDsChecked = 0;
+var bKeeper = {}; // Burst
+bKeeper.count = 0;
+bKeeper.checked = 0;
+bKeeper.check = function () {
+    if (++this.checked == this.count) {
+        done('burst');
+    }
+};
 
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
@@ -301,7 +298,7 @@ function saveResume(obj, isTopBurst) {
         }
         else {
             console.log('Added resume to db: ' + obj.vse35Id);
-            if (isTopBurst) incAndCheckTopBurst();
+            if (isTopBurst) bKeeper.check();
         }
     });
 }
@@ -317,7 +314,7 @@ function saveToDB(obj, isTopBurst, isVacancy) {
 
         if (id) {
             console.log(text + ' with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) incAndCheckTopBurst();
+            if (isTopBurst) bKeeper.check();
         } else {
             if (isVacancy) {
                 saveVacancy(obj, isTopBurst);
@@ -368,12 +365,6 @@ function chainerNext(idStart) {
     });
 }
 
-function incAndCheckTopBurst() {
-    if (++topIDsChecked == topIDsCount) {
-        done('burst');
-    }
-}
-
 function checkChainerIsDone() {
     //prevDone && nextDone
 }
@@ -415,17 +406,17 @@ function getLastCheckedId(callback) {
 function runBurstOrChainer(id, topIDs) {
     if (false) {
 //    if (topIDs) {
-        topIDsCount = topIDs.length;
-        if (topIDsCount == 0) {
+        bKeeper.count = topIDs.length;
+        if (bKeeper.count == 0) {
             console.log('Nothing new since ' + idWasAdded + '.');
             done();
         } else {
-            var isAre = topIDsCount == 1 ? ' is ' : ' are ';
-            console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
+            var isAre = bKeeper.count == 1 ? ' is ' : ' are ';
+            console.log('There' + isAre + bKeeper.count + ' fresh vacancies on main page since '
                 + idWasAdded + ' and top ID is ' + id + '.');
 
             var i;
-            for (i = 0; i < topIDsCount; i++) {
+            for (i = 0; i < bKeeper.count; i++) {
                 getPageById(topIDs[i], true);
             }
         }
