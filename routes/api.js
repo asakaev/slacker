@@ -11,7 +11,6 @@ function replaceAllBackSlash(targetStr) {
 }
 
 exports.dbGetJSON = function (req, res) {
-
     if (typeof req.query.q === 'undefined') {
         res.jsonp([]);
     }
@@ -19,8 +18,7 @@ exports.dbGetJSON = function (req, res) {
         var clean = replaceAllBackSlash(req.query.q);
         if (clean === '') {
             res.jsonp([]);
-        }
-        else {
+        } else {
             Vacancy.find({ vacancy: new RegExp(clean, 'i') }, '-idSputnik -_id -issue', function (err, vacancies) {
                 if (err) return console.error(err);
                 res.jsonp(vacancies);
