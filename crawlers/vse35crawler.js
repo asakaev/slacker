@@ -1,19 +1,12 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8 сделана
-// TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
-// TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
-// TODO: можно хватать первую вакансию сверху и в 2 потока запускать параллельно влево и вправо!!!
 
 // TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
-// TODO: по телефонам тоже кстати можно обзванивать если профит какой-то может быть от этого
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
-
 // TODO: refactor saveVacToDB & saveResumeToDB to one function
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
 // TODO: lastCheckedId сохранять. он только читается пока.
-// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
-// TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
 // TODO: if error delete from db
 // TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
 
@@ -445,6 +438,30 @@ function getLastCheckedId(callback) {
     });
 }
 
+function runBurstOrChainer(id, topIDs) {
+    // If we can burst top15
+    if (false) {
+//    if (topIDs) {
+        topIDsCount = topIDs.length;
+        if (topIDsCount == 0) {
+            console.log('Nothing new since ' + idWasAdded + '.');
+            done();
+        } else {
+            var isAre = topIDsCount == 1 ? ' is ' : ' are ';
+            console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
+                + idWasAdded + ' and top ID is ' + id + '.');
+
+            var i;
+            for (i = 0; i < topIDsCount; i++) {
+                getPageById(topIDs[i], true);
+            }
+        }
+    } else {
+        chainerPrev(id);
+        chainerNext(id);
+    }
+}
+
 function main() {
     console.log('Crawler for Vse35 started.');
     mongoose.connect('mongodb://localhost/work', function (err) {
@@ -455,27 +472,7 @@ function main() {
 
         getLastCheckedId(function () {
             getMainPage(function (id, topIDs) {
-                // If we can burst top15
-                if (false) {
-//                if (topIDs) {
-                    topIDsCount = topIDs.length;
-                    if (topIDsCount == 0) {
-                        console.log('Nothing new since ' + idWasAdded + '.');
-                        done();
-                    } else {
-                        var isAre = topIDsCount == 1 ? ' is ' : ' are ';
-                        console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
-                            + idWasAdded + ' and top ID is ' + id + '.');
-
-                        var i;
-                        for (i = 0; i < topIDsCount; i++) {
-                            getPageById(topIDs[i], true);
-                        }
-                    }
-                } else {
-                    chainerPrev(id);
-                    chainerNext(id);
-                }
+                runBurstOrChainer(id, topIDs);
             });
         });
     });
