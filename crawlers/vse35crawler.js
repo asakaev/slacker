@@ -280,9 +280,7 @@ function getPageById(id, isTopBurst, callback) {
                 prevId = parseInt(prevId.split('=')["1"]);
             }
 
-            if (callback) {
-                callback(prevId, nextId);
-            }
+            if (callback) callback(prevId, nextId);
         } // end if connect success
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
@@ -399,7 +397,6 @@ function chainerNext(idStart) {
 
 function incAndCheckTopBurst() {
     if (++topIDsChecked == topIDsCount) {
-        console.log('Really DONE with parallel burst!');
         done('burst');
     }
 }
@@ -416,10 +413,13 @@ function done(param) {
         time = time + ' sec.';
     }
 
-    if (param == 'burst') {
-        console.log('Done burst in ' + time);
-    } else {
-        console.log('Done chainer in ' + time);
+    if (param == 'burst')
+    switch (param) {
+        case 'burst':
+            console.log('Done burst in ' + time);
+            break;
+        case 'chainer':
+            console.log('Done chainer in ' + time);
     }
 
     mongoose.disconnect(function () {
@@ -456,9 +456,9 @@ function main() {
 
         getLastCheckedId(function () {
             getMainPage(function (id, topIDs) {
+                // If we can burst top15
                 if (topIDs) {
                     topIDsCount = topIDs.length;
-
                     if (topIDsCount == 0) {
                         console.log('Nothing new since ' + idWasAdded + '.');
                         done();
@@ -469,12 +469,7 @@ function main() {
 
                         var i;
                         for (i = 0; i < topIDsCount; i++) {
-                            getPageById(topIDs[i], function () {
-                                topIDsChecked++;
-                                if (topIDsChecked == topIDsCount) {
-                                    console.log('top is DONE!!!');
-                                }
-                            });
+                            getPageById(topIDs[i], true);
                         }
                     }
                 } else {
