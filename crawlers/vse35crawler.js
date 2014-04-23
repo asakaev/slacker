@@ -380,18 +380,12 @@ function checkChainerIsDone() {
 
 function done(param) {
     var time = (new Date().getTime() - start) / 1000;
-    if (time > 60) {
-        time = time / 60 + ' min.';
-    } else {
-        time = time + ' sec.';
-    }
+    time = time > 60 ? time / 60 + ' min.' : time + ' sec.';
 
-    switch (param) {
-        case 'burst':
-            console.log('Done burst in ' + time);
-            break;
-        case 'chainer':
-            console.log('Done chainer in ' + time);
+    if (param === 'burst') {
+        console.log('Done burst in ' + time);
+    } else if (param === 'chainer') {
+        console.log('Done chainer in ' + time);
     }
 
     mongoose.disconnect(function () {
@@ -419,8 +413,8 @@ function getLastCheckedId(callback) {
 }
 
 function runBurstOrChainer(id, topIDs) {
-//    if (false) {
-    if (topIDs) {
+    if (false) {
+//    if (topIDs) {
         topIDsCount = topIDs.length;
         if (topIDsCount == 0) {
             console.log('Nothing new since ' + idWasAdded + '.');
