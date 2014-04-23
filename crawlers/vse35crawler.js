@@ -78,9 +78,6 @@ var extra = mongoose.model('Extra', extraSchema);
 //     if (this.vacCountOnPager == ++this.vacChecked) done();
 // };
 
-var categoriesCount;
-var totalVacancies = 0;
-var globCount = 0;
 var prevCount = 0;
 var prevDone = false;
 var nextCount = 0;
@@ -92,17 +89,6 @@ function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
-
-            var categories = $('.st-cats-list.two.job .cat');
-            categoriesCount = categories.length;
-
-            // считаем количество всех вакансий
-            categories.each(function (index) {
-                var count = categories[index].children[1].data;
-                count = parseInt(count.substring(2, count.length - 1));
-                totalVacancies += count;
-            });
-            console.log('There are ' + totalVacancies + ' vacancies in ' + categoriesCount + ' categories.');
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
@@ -139,15 +125,9 @@ function getMainPage(callback) {
                 }
             }
 
-            var top15IsAllNew = false;
-            // If there is all 15 ISs is new to us
-            if (idx == top15count) {
-                top15IsAllNew = true;
-            }
-
-            // Callback: if all new then just topId else arr with NEW IDs
             if (callback) {
-                if (top15IsAllNew) {
+                // If all new then just topId else arr with NEW IDs
+                if (idx == top15count) {
                     callback(topId);
                 } else {
                     callback(topId, arr);
