@@ -372,7 +372,7 @@ function chainerPrev(idStart) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + prevCount + ' hidden pages.');
+            console.log('We went back [<<] and got ' + prevCount + ' pages.');
             prevDone = true;
             done();
         }
@@ -413,7 +413,6 @@ function done(param) {
         time = time + ' sec.';
     }
 
-    if (param == 'burst')
     switch (param) {
         case 'burst':
             console.log('Done burst in ' + time);
@@ -457,7 +456,8 @@ function main() {
         getLastCheckedId(function () {
             getMainPage(function (id, topIDs) {
                 // If we can burst top15
-                if (topIDs) {
+                if (false) {
+//                if (topIDs) {
                     topIDsCount = topIDs.length;
                     if (topIDsCount == 0) {
                         console.log('Nothing new since ' + idWasAdded + '.');
@@ -482,6 +482,3 @@ function main() {
 }
 
 main();
-
-//mongoose.connect('mongodb://localhost/work');
-//getPageById(554487);
