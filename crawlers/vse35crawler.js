@@ -21,10 +21,6 @@ var mongoose = require('mongoose');
 var extraFromDb;
 var lastCheckedId;
 var idWasAdded;
-var prevCount = 0;
-var prevDone = false;
-var nextCount = 0;
-var nextDone = false;
 const maxToCheck = 5;
 
 var db = mongoose.connection;
@@ -65,12 +61,23 @@ var extraSchema = mongoose.Schema({
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
 
-var bKeeper = {}; // Burst
-bKeeper.count = 0;
-bKeeper.checked = 0;
-bKeeper.check = function () {
-    if (++this.checked == this.count) {
+var bK = {}; // Burst Keeper
+bK.total = 0;
+bK.checked = 0;
+bK.check = function () {
+    if (++this.checked == this.total) {
         done('burst');
+    }
+};
+
+var cK = {}; // Chainer Keeper
+cK.prevDone = false;
+cK.nextDone = false;
+cK.prevCount = 0;
+cK.nextCount = 0;
+cK.check = function () {
+    if (this.prevDone && this.nextDone) {
+        done('chainer');
     }
 };
 
@@ -280,7 +287,7 @@ function saveVacancy(obj, isTopBurst) {
         }
         else {
             console.log('Added to db: ' + obj.vse35Id);
-            if (isTopBurst) bKeeper.check();
+            if (isTopBurst) bK.check();
         }
     });
 }
@@ -294,7 +301,7 @@ function saveResume(obj, isTopBurst) {
         }
         else {
             console.log('Added resume to db: ' + obj.vse35Id);
-            if (isTopBurst) bKeeper.check();
+            if (isTopBurst) bK.check();
         }
     });
 }
@@ -310,7 +317,7 @@ function saveToDB(obj, isTopBurst, isVacancy) {
 
         if (id) {
             console.log(text + ' with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) bKeeper.check();
+            if (isTopBurst) bK.check();
         } else {
             if (isVacancy) {
                 saveVacancy(obj, isTopBurst);
@@ -331,38 +338,34 @@ function convertDate(strInput) {
 
 function chainerPrev(idStart) {
     getPageById(idStart, false, function (prev, next) {
-        prevCount++;
-        console.log('Count: ' + prevCount + ' this id: ' + idStart + ', prev: ' + prev);
+        cK.prevCount++;
+        console.log('Count: ' + cK.prevCount + ' this id: ' + idStart + ', prev: ' + prev);
 
-        if ((prev != 0) && (prevCount < maxToCheck)) {
+        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + prevCount + ' pages.');
-            prevDone = true;
-            done();
+            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
+            cK.prevDone = true;
+            cK.check();
         }
     });
 }
 
 function chainerNext(idStart) {
     getPageById(idStart, false, function (prev, next) {
-        nextCount++;
-        console.log('Count: ' + nextCount + ', next: ' + next);
+        cK.nextCount++;
+        console.log('Count: ' + cK.nextCount + ', next: ' + next);
 
-        if ((next != 0) && (nextCount < maxToCheck)) {
+        if ((next != 0) && (cK.nextCount < maxToCheck)) {
             chainerNext(next);
         }
         else {
-            console.log('We went forward [>>] and ' + nextCount + ' pages got.');
-            nextDone = true;
-            done();
+            console.log('We went forward [>>] and ' + cK.nextCount + ' pages got.');
+            cK.nextDone = true;
+            cK.check();
         }
     });
-}
-
-function checkChainerIsDone() {
-    //prevDone && nextDone
 }
 
 function done(param) {
@@ -402,16 +405,16 @@ function getLastCheckedId(callback) {
 function runBurstOrChainer(id, topIDs) {
     if (false) {
 //    if (topIDs) {
-        bKeeper.count = topIDs.length;
-        if (bKeeper.count == 0) {
+        bK.total = topIDs.length;
+        if (bK.total == 0) {
             console.log('Nothing new since ' + idWasAdded + '.');
             done();
         } else {
-            var isAre = bKeeper.count == 1 ? ' is ' : ' are ';
-            console.log('There' + isAre + bKeeper.count + ' fresh vacancies on main page since '
+            var isAre = bK.total == 1 ? ' is ' : ' are ';
+            console.log('There' + isAre + bK.total + ' fresh vacancies on main page since '
                 + idWasAdded + ' and top ID is ' + id + '.');
 
-            for (var i = 0; i < bKeeper.count; i++) {
+            for (var i = 0; i < bK.total; i++) {
                 getPageById(topIDs[i], true);
             }
         }
