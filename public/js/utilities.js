@@ -87,15 +87,16 @@ History.Adapter.bind(window, 'statechange', function(){
 		changeState(0);
 	}
 })
+
+
 VK.init({
   apiId: 4323440
 });
 function authInfo(response) {
   if (response.session) {
-    alert('user: '+response.session.mid);
+    console.log('user: id'+response.session.mid);
   } else {
-    alert('not auth');
+    console.log('not auth');
   }
 }
 VK.Auth.getLoginStatus(authInfo);
-VK.UI.button('login_button');
