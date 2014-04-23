@@ -15,19 +15,17 @@ var start = new Date().getTime();
 var request = require('request');
 var cheerio = require('cheerio');
 var Iconv = require('iconv').Iconv;
-var fromEnc = 'cp1251';
-var toEnc = 'utf-8';
-var translator = new Iconv(fromEnc, toEnc);
+var translator = new Iconv('cp1251', 'utf-8');
 var mongoose = require('mongoose');
 
 var extraFromDb;
 var lastCheckedId;
-const maxToCheck = 5;
 var idWasAdded;
 var prevCount = 0;
 var prevDone = false;
 var nextCount = 0;
 var nextDone = false;
+const maxToCheck = 5;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -103,10 +101,9 @@ function getMainPage(callback) {
             }
 
             var arr = [];
-            var idx;
             // Check if there is something we already know in top15
-            for (idx = 0; idx < top15count; idx++) {
-                var id = top15[idx].children["1"].children["0"].attribs.href;
+            for (var m = 0; m < top15count; m++) {
+                var id = top15[m].children["1"].children["0"].attribs.href;
                 id = parseInt(id.split('=')["1"]);
 
                 if (id != lastCheckedId) {
@@ -118,7 +115,7 @@ function getMainPage(callback) {
 
             if (callback) {
                 // If all new then just topId else arr with NEW IDs
-                if (idx == top15count) {
+                if (m == top15count) {
                     callback(topId);
                 } else {
                     callback(topId, arr);
@@ -192,19 +189,19 @@ function getPageById(id, isTopBurst, callback) {
             }
 
             var thereWasPhone;
-            for (var i = 0; i < nameRightBlock.length; i++) {
-                var item = nameRightBlock[i].children["0"].data;
-                switch (item) {
+            for (var k = 0; k < nameRightBlock.length; k++) {
+                var itemRightBlock = nameRightBlock[k].children["0"].data;
+                switch (itemRightBlock) {
                     case 'Телефон':
                         thereWasPhone = true;
-                        obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
+                        obj.tel = valueRightBlock[k + 1].children["0"].data.trim();
                         break;
                     case 'Email':
                         if (thereWasPhone) {
-                            obj.email = valueRightBlock[i + 1].children["0"].data.trim();
+                            obj.email = valueRightBlock[k + 1].children["0"].data.trim();
                         }
                         else {
-                            obj.email = valueRightBlock[i].children["0"].data.trim();
+                            obj.email = valueRightBlock[k].children["0"].data.trim();
                         }
                 }
             }
@@ -217,11 +214,10 @@ function getPageById(id, isTopBurst, callback) {
             var valueLeftBlock = $('.col1 .item_inner .item_value');
 
             var isVacancy;
-
-            for (var i = 0; i < nameLeftBlock.length; i++) {
-                var item = nameLeftBlock[i].children["0"].data.trim();
-                var itemVal = valueLeftBlock[i].children["0"].data.trim();
-                switch (item) {
+            for (var l = 0; l < nameLeftBlock.length; l++) {
+                var itemLeftBlock = nameLeftBlock[l].children["0"].data.trim();
+                var itemVal = valueLeftBlock[l].children["0"].data.trim();
+                switch (itemLeftBlock) {
                     case 'Зарплата, р.':
                         if (itemVal != obj.price) {
                             obj.priceCustom = itemVal;
@@ -284,7 +280,7 @@ function saveVacancy(obj, isTopBurst) {
         }
         else {
             console.log('Added to db: ' + obj.vse35Id);
-            if (isTopBurst) incAndCheckTopBurst();
+            if (isTopBurst) bKeeper.check();
         }
     });
 }
@@ -415,8 +411,7 @@ function runBurstOrChainer(id, topIDs) {
             console.log('There' + isAre + bKeeper.count + ' fresh vacancies on main page since '
                 + idWasAdded + ' and top ID is ' + id + '.');
 
-            var i;
-            for (i = 0; i < bKeeper.count; i++) {
+            for (var i = 0; i < bKeeper.count; i++) {
                 getPageById(topIDs[i], true);
             }
         }
