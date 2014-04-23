@@ -109,8 +109,8 @@ function getMainPage(callback) {
 
             var arr = [];
             // Check if there is something we already know in top15
-            for (var m = 0; m < top15count; m++) {
-                var id = top15[m].children["1"].children["0"].attribs.href;
+            for (var i = 0; i < top15count; i++) {
+                var id = top15[i].children["1"].children["0"].attribs.href;
                 id = parseInt(id.split('=')["1"]);
 
                 if (id != lastCheckedId) {
@@ -122,7 +122,7 @@ function getMainPage(callback) {
 
             if (callback) {
                 // If all new then just topId else arr with NEW IDs
-                if (m == top15count) {
+                if (i == top15count) {
                     callback(topId);
                 } else {
                     callback(topId, arr);
@@ -196,19 +196,20 @@ function getPageById(id, isTopBurst, callback) {
             }
 
             var thereWasPhone;
-            for (var k = 0; k < nameRightBlock.length; k++) {
-                var itemRightBlock = nameRightBlock[k].children["0"].data;
+            var i;
+            for (i = 0; i < nameRightBlock.length; i++) {
+                var itemRightBlock = nameRightBlock[i].children["0"].data;
                 switch (itemRightBlock) {
                     case 'Телефон':
                         thereWasPhone = true;
-                        obj.tel = valueRightBlock[k + 1].children["0"].data.trim();
+                        obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
                         break;
                     case 'Email':
                         if (thereWasPhone) {
-                            obj.email = valueRightBlock[k + 1].children["0"].data.trim();
+                            obj.email = valueRightBlock[i + 1].children["0"].data.trim();
                         }
                         else {
-                            obj.email = valueRightBlock[k].children["0"].data.trim();
+                            obj.email = valueRightBlock[i].children["0"].data.trim();
                         }
                 }
             }
@@ -221,9 +222,9 @@ function getPageById(id, isTopBurst, callback) {
             var valueLeftBlock = $('.col1 .item_inner .item_value');
 
             var isVacancy;
-            for (var l = 0; l < nameLeftBlock.length; l++) {
-                var itemLeftBlock = nameLeftBlock[l].children["0"].data.trim();
-                var itemVal = valueLeftBlock[l].children["0"].data.trim();
+            for (i = 0; i < nameLeftBlock.length; i++) {
+                var itemLeftBlock = nameLeftBlock[i].children["0"].data.trim();
+                var itemVal = valueLeftBlock[i].children["0"].data.trim();
                 switch (itemLeftBlock) {
                     case 'Зарплата, р.':
                         if (itemVal != obj.price) {
