@@ -10,6 +10,8 @@
 // TODO: if error delete from db
 // TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
 
+// TODO: хеш считать или думать что-то новое на главной. иначе топ1 может быть постоянным а под ним поменяется
+
 var start = new Date().getTime();
 
 var request = require('request');
@@ -340,10 +342,10 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
-function chainerPrev(idStart) {
-    getPageById(idStart, false, function (prev, next) {
+function chainerPrev(id) {
+    getPageById(id, false, function (prev, next) {
         cK.prevCount++;
-        console.log('Count: ' + cK.prevCount + ' this id: ' + idStart + ', prev: ' + prev);
+        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
         if ((prev != 0) && (cK.prevCount < maxToCheck)) {
             chainerPrev(prev);
@@ -356,16 +358,16 @@ function chainerPrev(idStart) {
     });
 }
 
-function chainerNext(idStart) {
-    getPageById(idStart, false, function (prev, next) {
+function chainerNext(id) {
+    getPageById(id, false, function (prev, next) {
         cK.nextCount++;
-        console.log('Count: ' + cK.nextCount + ', next: ' + next);
+        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
         if ((next != 0) && (cK.nextCount < maxToCheck)) {
             chainerNext(next);
         }
         else {
-            console.log('We went forward [>>] and ' + cK.nextCount + ' pages got.');
+            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
             cK.nextDone = true;
             cK.check();
         }
