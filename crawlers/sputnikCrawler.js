@@ -36,11 +36,11 @@ var extraSchema = mongoose.Schema({
 var extra = mongoose.model('Extra', extraSchema);
 
 var keeper = {}; // Wait when all vacancies from sputnik saved (or checked if exist) to DB
-keeper.vacCountOnPager = 0;
-keeper.vacChecked = 0;
-keeper.vacAddedToDb = 0;
-keeper.incrementAndCheck = function () {
-    if (this.vacCountOnPager == ++this.vacChecked) done();
+keeper.total = 0;
+keeper.checked = 0;
+keeper.added = 0;
+keeper.incAndCheck = function () {
+    if (++this.checked == this.total) done();
 };
 
 function getPagerWithDate(callback) {
@@ -68,8 +68,8 @@ function getPagerWithDate(callback) {
 
             var pagesCount = $('.listPrevNextPage')["0"].children["3"].attribs.href;
             pagesCount = parseInt(pagesCount.replace('?p=', ''));
-            keeper.vacCountOnPager = $('.countItemsInCategory')["0"].children["0"].data;
-            keeper.vacCountOnPager = parseInt(keeper.vacCountOnPager.substring(22, keeper.vacCountOnPager.length - 22));
+            keeper.total = $('.countItemsInCategory')["0"].children["0"].data;
+            keeper.total = parseInt(keeper.total.substring(22, keeper.total.length - 22));
 
             var nodes = $('.itemOb');
             if (nodes.length != 20) {
@@ -110,13 +110,13 @@ function getAndParsePage(pageNum) {
                                 shutDownWithMsg(err, true);
                             }
                             else {
-                                keeper.vacAddedToDb++;
-                                keeper.incrementAndCheck();
+                                keeper.added++;
+                                keeper.incAndCheck();
                             }
                         });
                     }
                     else {
-                        keeper.incrementAndCheck();
+                        keeper.incAndCheck();
                     }
                 });
             }); // End of each div on page parsing
@@ -183,11 +183,11 @@ function convertDate(strInput) {
 function done() {
     var time = (new Date().getTime() - start) / 1000;
     var info;
-    if (keeper.vacCountOnPager == keeper.vacAddedToDb) {
-        info = '[OK]'.green + ' All ' + keeper.vacCountOnPager + ' vacancies checked and added to DB in ' + time + ' sec.';
+    if (keeper.added == keeper.total) {
+        info = '[OK]'.green + ' All ' + keeper.total + ' vacancies checked and added to DB in ' + time + ' sec.';
     }
     else {
-        info = '[OK]'.green + ' ' + keeper.vacCountOnPager + ' vacancies checked and ' + keeper.vacAddedToDb + ' new added to DB in ' + time + ' sec.';
+        info = '[OK]'.green + ' ' + keeper.total + ' vacancies checked and ' + keeper.added + ' new added to DB in ' + time + ' sec.';
     }
     shutDownWithMsg(info);
 }
