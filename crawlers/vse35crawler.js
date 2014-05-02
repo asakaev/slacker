@@ -1,34 +1,28 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8 сделана
-// TODO: запилить проверку на том элементе когда прекратили гулять по сайту. нужно сохранить в файл
-// TODO: похоже только полный перебор. нет не только. на первой вылезают объявы которые апдейтет даже.
-// TODO: можно хватать первую вакансию сверху и в 2 потока запускать параллельно влево и вправо!!!
 
 // TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
-// TODO: по телефонам тоже кстати можно обзванивать если профит какой-то может быть от этого
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
-
-// TODO: refactor saveVacToDB & saveResumeToDB to one function
+// TODO: refactor saveVacToDB & saveResumeToDB to one function. дублирование всёровно
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
 // TODO: lastCheckedId сохранять. он только читается пока.
-// TODO: Чейнер влево пока prev != 0, вправо до тех пор пока id != lastTopId (в базу сохранять и проверить что за lastCheckedId)
-// TODO: Продумать логику работы с next и top15. можно реально всё сделать быстро очень.
 // TODO: if error delete from db
 // TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
+
+// TODO: хеш считать или думать что-то новое на главной. иначе топ1 может быть постоянным а под ним поменяется
 
 var start = new Date().getTime();
 
 var request = require('request');
 var cheerio = require('cheerio');
 var Iconv = require('iconv').Iconv;
-var fromEnc = 'cp1251';
-var toEnc = 'utf-8';
-var translator = new Iconv(fromEnc, toEnc);
+var translator = new Iconv('cp1251', 'utf-8');
 var mongoose = require('mongoose');
 
-var extraFromDb;
+var extraFromDB;
 var lastCheckedId;
+var idWasAdded;
 const maxToCheck = 5;
 
 var db = mongoose.connection;
@@ -69,40 +63,41 @@ var extraSchema = mongoose.Schema({
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
 
+var bK = {}; // Burst Keeper
+bK.total = 0;
+bK.checked = 0;
+bK.check = function () {
+    if (++this.checked == this.total) {
+        done('burst');
+    }
+};
 
-// var keeper = {}; // wait when all vacancies from sputnik saved (or checked if exist) to db
-// keeper.vacCountOnPager = 0;
-// keeper.vacChecked = 0;
-// keeper.vacAddedToDb = 0;
-// keeper.incrementAndCheck = function () {
-//     if (this.vacCountOnPager == ++this.vacChecked) done();
-// };
+var cK = {}; // Chainer Keeper
+cK.prevDone = false;
+cK.nextDone = false;
+cK.prevCount = 0;
+cK.nextCount = 0;
+cK.check = function () {
+    if (this.prevDone && this.nextDone) {
+        done('chainer');
+    }
+};
 
-var categoriesCount;
-var totalVacancies = 0;
-var globCount = 0;
-var prevCount = 0;
-var prevDone = false;
-var nextCount = 0;
-var nextDone = false;
-var topIDsCount = 0;
-var topIDsChecked = 0;
+function updateExtra(topId) {
+    // If there is date in DB then update it, else create new
+    if (extraFromDB) {
+//                extraFromDB.lastCheckedId = topId;
+        extraFromDB.idWasAdded = new Date();
+        extraFromDB.save();
+    } else {
+        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
+    }
+}
 
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
-
-            var categories = $('.st-cats-list.two.job .cat');
-            categoriesCount = categories.length;
-
-            // считаем количество всех вакансий
-            categories.each(function (index) {
-                var count = categories[index].children[1].data;
-                count = parseInt(count.substring(2, count.length - 1));
-                totalVacancies += count;
-            });
-            console.log('There are ' + totalVacancies + ' vacancies in ' + categoriesCount + ' categories.');
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
@@ -115,21 +110,12 @@ function getMainPage(callback) {
 
             var topId = top15["0"].children["1"].children["0"].attribs.href;
             topId = parseInt(topId.split('=')["1"]);
-
-            // If there is date in DB then update it, else create new
-            if (extraFromDb) {
-//                extraFromDb.lastCheckedId = topId;
-                extraFromDb.idWasAdded = new Date();
-                extraFromDb.save();
-            } else {
-                new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
-            }
+            updateExtra(topId);
 
             var arr = [];
-            var idx;
             // Check if there is something we already know in top15
-            for (idx = 0; idx < top15count; idx++) {
-                var id = top15[idx].children["1"].children["0"].attribs.href;
+            for (var i = 0; i < top15count; i++) {
+                var id = top15[i].children["1"].children["0"].attribs.href;
                 id = parseInt(id.split('=')["1"]);
 
                 if (id != lastCheckedId) {
@@ -139,15 +125,9 @@ function getMainPage(callback) {
                 }
             }
 
-            var top15IsAllNew = false;
-            // If there is all 15 ISs is new to us
-            if (idx == top15count) {
-                top15IsAllNew = true;
-            }
-
-            // Callback: if all new then just topId else arr with NEW IDs
             if (callback) {
-                if (top15IsAllNew) {
+                // If all new then just topId else arr with NEW IDs
+                if (i == top15count) {
                     callback(topId);
                 } else {
                     callback(topId, arr);
@@ -221,9 +201,10 @@ function getPageById(id, isTopBurst, callback) {
             }
 
             var thereWasPhone;
-            for (var i = 0; i < nameRightBlock.length; i++) {
-                var item = nameRightBlock[i].children["0"].data;
-                switch (item) {
+            var i;
+            for (i = 0; i < nameRightBlock.length; i++) {
+                var itemRightBlock = nameRightBlock[i].children["0"].data;
+                switch (itemRightBlock) {
                     case 'Телефон':
                         thereWasPhone = true;
                         obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
@@ -246,11 +227,10 @@ function getPageById(id, isTopBurst, callback) {
             var valueLeftBlock = $('.col1 .item_inner .item_value');
 
             var isVacancy;
-
-            for (var i = 0; i < nameLeftBlock.length; i++) {
-                var item = nameLeftBlock[i].children["0"].data.trim();
+            for (i = 0; i < nameLeftBlock.length; i++) {
+                var itemLeftBlock = nameLeftBlock[i].children["0"].data.trim();
                 var itemVal = valueLeftBlock[i].children["0"].data.trim();
-                switch (item) {
+                switch (itemLeftBlock) {
                     case 'Зарплата, р.':
                         if (itemVal != obj.price) {
                             obj.priceCustom = itemVal;
@@ -278,12 +258,7 @@ function getPageById(id, isTopBurst, callback) {
                 }
             }
 
-            if (isVacancy) {
-                saveVacancyToDb(obj, isTopBurst);
-            }
-            else {
-                saveResumeToDb(obj, isTopBurst);
-            }
+            saveToDB(obj, isTopBurst, isVacancy);
 
             var next = $('.next');
             var nextId = 0;
@@ -299,9 +274,7 @@ function getPageById(id, isTopBurst, callback) {
                 prevId = parseInt(prevId.split('=')["1"]);
             }
 
-            if (callback) {
-                callback(prevId, nextId);
-            }
+            if (callback) callback(prevId, nextId);
         } // end if connect success
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
@@ -311,14 +284,7 @@ function getPageById(id, isTopBurst, callback) {
     });
 }
 
-function incAndCheckTopBurst() {
-    if (++topIDsChecked == topIDsCount) {
-        console.log('Really DONE with parallel burst!');
-    }
-}
-
-function saveVacancyToDb(obj, isTopBurst) {
-    // find if exist and save to db
+function saveVacancy(obj, isTopBurst) {
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
             console.log(err);
@@ -326,8 +292,10 @@ function saveVacancyToDb(obj, isTopBurst) {
             process.exit(1);
         }
 
-        // if not found then save to db
-        if (!id) {
+        if (id) {
+            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
+            if (isTopBurst) bK.check();
+        } else {
             new vacancy(obj).save(function (err) {
                 if (err) {
                     console.log(err);
@@ -335,24 +303,15 @@ function saveVacancyToDb(obj, isTopBurst) {
                     process.exit(1);
                 }
                 else {
-                    console.log('Added to db: ' + obj.vse35Id);
-                    //keeper.vacAddedToDb++;
-                    //keeper.incrementAndCheck();
+                    console.log('Added resume to db: ' + obj.vse35Id);
+                    if (isTopBurst) bK.check();
                 }
-                // TODO: disconnect here and count time
-                if (isTopBurst) incAndCheckTopBurst();
             });
-        }
-        else {
-            console.log('Already here id: ' + obj.vse35Id);
-            // TODO: disconnect here and count time
-            if (isTopBurst) incAndCheckTopBurst();
         }
     });
 }
 
-function saveResumeToDb(obj, isTopBurst) {
-    // find if exist and save to db
+function saveResume(obj, isTopBurst) {
     resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
             console.log(err);
@@ -360,8 +319,10 @@ function saveResumeToDb(obj, isTopBurst) {
             process.exit(1);
         }
 
-        // if not found then save to db
-        if (!id) {
+        if (id) {
+            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
+            if (isTopBurst) bK.check();
+        } else {
             new resume(obj).save(function (err) {
                 if (err) {
                     console.log(err);
@@ -370,16 +331,19 @@ function saveResumeToDb(obj, isTopBurst) {
                 }
                 else {
                     console.log('Added resume to db: ' + obj.vse35Id);
-                    //keeper.vacAddedToDb++;
-                    //keeper.incrementAndCheck();
+                    if (isTopBurst) bK.check();
                 }
             });
         }
-        else {
-            console.log('Already resume here id: ' + obj.vse35Id);
-            //keeper.incrementAndCheck();
-        }
     });
+}
+
+function saveToDB(obj, isTopBurst, isVacancy) {
+    if (isVacancy) {
+        saveVacancy(obj, isTopBurst);
+    } else {
+        saveResume(obj, isTopBurst);
+    }
 }
 
 function convertDate(strInput) {
@@ -390,73 +354,92 @@ function convertDate(strInput) {
     return new Date(yr, mon - 1, dt);
 }
 
-function chainerPrev(idStart) {
-    getPageById(idStart, false, function (prev, next) {
-        prevCount++;
-        console.log('Count: ' + prevCount + ' this id: ' + idStart + ', prev: ' + prev);
+function chainerPrev(id) {
+    getPageById(id, false, function (prev, next) {
+        cK.prevCount++;
+        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
-        if ((prev != 0) && (prevCount < maxToCheck)) {
+        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + prevCount + ' hidden pages.');
-            prevDone = true;
-            done();
+            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
+            cK.prevDone = true;
+            cK.check();
         }
     });
 }
 
-function chainerNext(idStart) {
-    getPageById(idStart, false, function (prev, next) {
-        nextCount++;
-        console.log('Count: ' + nextCount + ', next: ' + next);
+function chainerNext(id) {
+    getPageById(id, false, function (prev, next) {
+        cK.nextCount++;
+        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
-        if ((next != 0) && (nextCount < maxToCheck)) {
+        if ((next != 0) && (cK.nextCount < maxToCheck)) {
             chainerNext(next);
         }
         else {
-            console.log('We went forward [>>] and ' + nextCount + ' pages got.');
-            nextDone = true;
-            done();
+            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
+            cK.nextDone = true;
+            cK.check();
         }
     });
 }
 
-function done() {
-    if (prevDone && nextDone) {
-        var time = (new Date().getTime() - start) / 1000;
-        if (time > 60) {
-            console.log('Working time: ' + time / 60 + ' min.');
-        } else {
-            console.log('Working time: ' + time + ' sec.');
-        }
+function done(param) {
+    var time = (new Date().getTime() - start) / 1000;
+    time = time < 60 ? time + ' sec.' : time / 60 + ' min.';
+
+    if (param === 'burst') {
+        console.log('Done burst in ' + time);
+    } else if (param === 'chainer') {
+        console.log('Done chainer in ' + time);
     }
 
-    // TODO: сделать нормально без дубля на все случаи жизни
-    var time = (new Date().getTime() - start) / 1000;
-    console.log('Working time: ' + time + ' sec.');
-    //mongoose.disconnect();
+    mongoose.disconnect(function () {
+        process.exit(0);
+    });
 }
-
-var idWasAdded;
 
 function getLastCheckedId(callback) {
     var query = extra.findOne();
     query.where('lastCheckedId').ne(null);
     query.exec(function (err, res) {
         if (err) console.log(err);
-        extraFromDb = res;
+        extraFromDB = res;
 
         // If there is last update Date in DB then use it, otherwise null
-        if (extraFromDb) {
-            lastCheckedId = extraFromDb.lastCheckedId;
-            idWasAdded = extraFromDb.idWasAdded;
-            console.log('Last time top ID was: ' + lastCheckedId);
+        if (extraFromDB) {
+            lastCheckedId = extraFromDB.lastCheckedId;
+            idWasAdded = extraFromDB.idWasAdded;
+            console.log('The last time top ID was ' + lastCheckedId + '.');
         } else {
             console.log('There is no last updated ID in database.');
         }
         if (callback) callback();
     });
+}
+
+function runBurstOrChainer(id, topIDs) {
+//    if (false) {
+    if (topIDs) {
+        bK.total = topIDs.length;
+        if (bK.total == 0) {
+            console.log('Nothing new since ' + idWasAdded + '.');
+            done();
+        } else {
+            var isAre = bK.total == 1 ? ' is ' : ' are ';
+            console.log('There' + isAre + bK.total + ' fresh vacancies on main page since '
+                + idWasAdded + ' and top ID is ' + id + '.');
+
+            for (var i = 0; i < bK.total; i++) {
+                getPageById(topIDs[i], true);
+            }
+        }
+    } else {
+        chainerPrev(id);
+        chainerNext(id);
+    }
 }
 
 function main() {
@@ -469,37 +452,10 @@ function main() {
 
         getLastCheckedId(function () {
             getMainPage(function (id, topIDs) {
-                if (topIDs) {
-                    topIDsCount = topIDs.length;
-
-                    if (topIDsCount == 0) {
-                        console.log('Nothing new since ' + idWasAdded + '.');
-                        done();
-                    } else {
-                        var isAre = topIDsCount == 1 ? ' is ' : ' are ';
-                        console.log('There' + isAre + topIDsCount + ' fresh vacancies on main page since '
-                            + idWasAdded + ' and top ID is ' + id + '.');
-
-                        var i;
-                        for (i = 0; i < topIDsCount; i++) {
-                            getPageById(topIDs[i], function () {
-                                topIDsChecked++;
-                                if (topIDsChecked == topIDsCount) {
-                                    console.log('top is DONE!!!');
-                                }
-                            });
-                        }
-                    }
-                } else {
-                    chainerPrev(id);
-                    chainerNext(id);
-                }
+                runBurstOrChainer(id, topIDs);
             });
         });
     });
 }
 
 main();
-
-//mongoose.connect('mongodb://localhost/work');
-//getPageById(554487);
