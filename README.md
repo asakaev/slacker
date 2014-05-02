@@ -1,4 +1,4 @@
-# work
+# Done is better than perfect
 
 1. clone from GitHub.
 2. cd /your/full/path/toproject
