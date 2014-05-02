@@ -77,6 +77,7 @@ cK.prevDone = false;
 cK.nextDone = false;
 cK.prevCount = 0;
 cK.nextCount = 0;
+cK.added = 0;
 cK.check = function () {
     if (this.prevDone && this.nextDone) {
         done('chainer');
@@ -302,9 +303,12 @@ function saveVacancy(obj, isTopBurst) {
                     //mongoose.disconnect();
                     process.exit(1);
                 }
-                else {
-                    console.log('Added resume to db: ' + obj.vse35Id);
-                    if (isTopBurst) bK.check();
+
+                console.log('Added vacancy to db: ' + obj.vse35Id);
+                if (isTopBurst) {
+                    bK.check();
+                } else {
+                    cK.added++;
                 }
             });
         }
@@ -359,7 +363,8 @@ function chainerPrev(id) {
         cK.prevCount++;
         console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
-        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
+//        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
+        if (prev != 0) {
             chainerPrev(prev);
         }
         else {
@@ -375,7 +380,7 @@ function chainerNext(id) {
         cK.nextCount++;
         console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
-        if ((next != 0) && (cK.nextCount < maxToCheck)) {
+        if (next != 0) {
             chainerNext(next);
         }
         else {
@@ -393,7 +398,9 @@ function done(param) {
     if (param === 'burst') {
         console.log('Done burst in ' + time);
     } else if (param === 'chainer') {
-        console.log('Done chainer in ' + time);
+        var total = cK.prevCount + cK.nextCount;
+        console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount + ' NEXT)' +
+            ' records added' + ' in ' + time);
     }
 
     mongoose.disconnect(function () {
