@@ -3,7 +3,6 @@
 
 // TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
-// TODO: refactor saveVacToDB & saveResumeToDB to one function. дублирование всёровно
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
 // TODO: lastCheckedId сохранять. он только читается пока.
@@ -54,8 +53,6 @@ function getSchemaForCollection(col) {
 
 var vacanciesSchema = getSchemaForCollection('vse35vacancies');
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
-var resumesSchema = getSchemaForCollection('vse35resumes');
-var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
     lastCheckedId: Number,
@@ -139,22 +136,6 @@ function getMainPage(callback) {
             if (callback) callback(res);
         }
     })
-}
-
-function runBurstOrChainer(topIDs) {
-    if (false) {
-//    if (topIDs) {
-        console.log('There is ID that we already know in Top15 so running parallel burst.');
-
-        for (var i = 0; i < 15; i++) {
-            getPageById(topIDs[i], true);
-        }
-
-    } else {
-        console.log('Running chainer so please wait...');
-        chainerPrev(topId);
-        chainerNext(topId);
-    }
 }
 
 function getPageById(id, isTopBurst, callback) {
@@ -335,38 +316,13 @@ function saveVacancy(obj, isTopBurst) {
     });
 }
 
-function saveResume(obj, isTopBurst) {
-    resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
-        }
-
-        if (id) {
-//            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) bK.check();
-        } else {
-            new resume(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-                else {
-                    console.log('Added resume to db: ' + obj.vse35Id);
-                    if (isTopBurst) bK.check();
-                }
-            });
-        }
-    });
-}
-
 function saveToDB(obj, isTopBurst, isVacancy) {
     if (isVacancy) {
         saveVacancy(obj, isTopBurst);
     } else {
-        saveResume(obj, isTopBurst);
+        if (isTopBurst) {
+            bK.check();
+        }
     }
 }
 
@@ -384,7 +340,6 @@ function chainerPrev(id) {
 //        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
         if ((prev != 0) && (cK.prevCount < maxToCheck)) {
-//        if (prev != 0) {
             chainerPrev(prev);
         }
         else {
@@ -401,7 +356,6 @@ function chainerNext(id) {
 //        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
         if ((next != 0) && (cK.nextCount < maxToCheck)) {
-//        if (next != 0) {
             chainerNext(next);
         }
         else {
@@ -424,8 +378,8 @@ function done(param) {
         console.log(text + ' new in TOP15. Burst done in ' + time);
     } else if (param === 'chainer') {
         var total = cK.prevCount + cK.nextCount;
-        console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount + ' NEXT)' +
-            ' records added' + ' in ' + time);
+        console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount +
+            ' NEXT) records added' + ' in ' + time);
     }
 
     updateExtra(function(){
@@ -452,6 +406,22 @@ function getLastCheckedId(callback) {
         }
         if (callback) callback();
     });
+}
+
+function runBurstOrChainer(topIDs) {
+//    if (false) {
+    if (topIDs) {
+        console.log('There is ID that we already know in Top15 so running parallel burst.');
+
+        for (var i = 0; i < 15; i++) {
+            getPageById(topIDs[i], true);
+        }
+
+    } else {
+        console.log('Running chainer so please wait...');
+        chainerPrev(topId);
+        chainerNext(topId);
+    }
 }
 
 function main() {
