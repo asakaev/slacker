@@ -67,10 +67,10 @@ var extraSchema = mongoose.Schema({
 var extra = mongoose.model('Extra', extraSchema);
 
 var bK = {}; // Burst Keeper
-bK.total = 0;
 bK.checked = 0;
+bK.added = 0;
 bK.check = function () {
-    if (++this.checked == this.total) {
+    if (++this.checked == 15) {
         done('burst');
     }
 };
@@ -98,6 +98,27 @@ function updateExtra(topId) {
     }
 }
 
+function checkTop15(top15) {
+    var arr = [];
+    var lastCheckedFinded = false;
+
+    // Check if there is something we already know in top15
+    for (var i = 0; i < top15.length; i++) {
+        var id = top15[i].children["1"].children["0"].attribs.href;
+        id = parseInt(id.split('=')["1"]);
+        arr.push(id);
+        if (id != lastCheckedId) {
+            lastCheckedFinded = true;
+        }
+    }
+
+    if (lastCheckedFinded) {
+        return arr;
+    } else {
+        return false;
+    }
+}
+
 function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
@@ -105,40 +126,35 @@ function getMainPage(callback) {
 
             // смотрим id топ15 записей
             var top15 = $('.item .desc');
-            var top15count = top15.length;
 
-            if (top15count != 15) {
+            if (top15.length != 15) {
                 console.log('WRN: Top 15 structure is changed!');
                 // TODO: exit if error here
             }
 
-            var topId = top15["0"].children["1"].children["0"].attribs.href;
-            topId = parseInt(topId.split('=')["1"]);
-            updateExtra(topId);
+            // TODO: updateExtra по окончанию
+//            updateExtra(topId);
 
-            var arr = [];
-            // Check if there is something we already know in top15
-            for (var i = 0; i < top15count; i++) {
-                var id = top15[i].children["1"].children["0"].attribs.href;
-                id = parseInt(id.split('=')["1"]);
-
-                if (id != lastCheckedId) {
-                    arr.push(id);
-                } else {
-                    break;
-                }
-            }
-
-            if (callback) {
-                // If all new then just topId else arr with NEW IDs
-                if (i == top15count) {
-                    callback(topId);
-                } else {
-                    callback(topId, arr);
-                }
-            }
+            var res = checkTop15(top15);
+            if (callback) callback(res);
         }
     })
+}
+
+function runBurstOrChainer(topIDs) {
+    if (true) {
+//    if (topIDs) {
+        console.log('There is maybe sometheing new in TOP15.');
+
+        for (var i = 0; i < 15; i++) {
+            getPageById(topIDs[i], true);
+        }
+
+    } else {
+        console.log('Running chainer so please wait...');
+        chainerPrev(id);
+        chainerNext(id);
+    }
 }
 
 function getPageById(id, isTopBurst, callback) {
@@ -309,6 +325,7 @@ function saveVacancy(obj, isTopBurst) {
 
                 console.log('Added vacancy to db: ' + obj.vse35Id);
                 if (isTopBurst) {
+                    bK.added++;
                     bK.check();
                 } else {
                     cK.added++;
@@ -401,6 +418,7 @@ function done(param) {
 
     if (param === 'burst') {
         console.log('Done burst in ' + time);
+        console.log('Found ' + bK.added + ' new in TOP15.');
     } else if (param === 'chainer') {
         var total = cK.prevCount + cK.nextCount;
         console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount + ' NEXT)' +
@@ -429,29 +447,6 @@ function getLastCheckedId(callback) {
         }
         if (callback) callback();
     });
-}
-
-function runBurstOrChainer(id, topIDs) {
-//    if (false) {
-    if (topIDs) {
-        bK.total = topIDs.length;
-        if (bK.total == 0) {
-            console.log('Nothing new since ' + idWasAdded + '.');
-            done();
-        } else {
-            var isAre = bK.total == 1 ? ' is ' : ' are ';
-            console.log('There' + isAre + bK.total + ' fresh vacancies on main page since '
-                + idWasAdded + ' and top ID is ' + id + '.');
-
-            for (var i = 0; i < bK.total; i++) {
-                getPageById(topIDs[i], true);
-            }
-        }
-    } else {
-        console.log('Running chainer so please wait...');
-        chainerPrev(id);
-        chainerNext(id);
-    }
 }
 
 function main() {
