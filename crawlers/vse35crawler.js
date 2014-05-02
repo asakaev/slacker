@@ -10,9 +10,6 @@
 // TODO: if error delete from db
 // TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
 
-// TODO: хеш считать или думать что-то новое на главной. иначе топ1 может быть постоянным а под ним поменяется
-
-// TODO: екстру обновлять когда всё хорошо
 // TODO: убрать лишний код который о резюме. отдельный бот лучше будет пусть который будет собирать контакты. иначе не ясно где что.
 
 var start = new Date().getTime();
@@ -26,6 +23,7 @@ var mongoose = require('mongoose');
 var extraFromDB;
 var lastCheckedId;
 var idWasAdded;
+var topId;
 const maxToCheck = 5;
 
 var db = mongoose.connection;
@@ -87,14 +85,18 @@ cK.check = function () {
     }
 };
 
-function updateExtra(topId) {
+function updateExtra(callback) {
     // If there is date in DB then update it, else create new
     if (extraFromDB) {
-//                extraFromDB.lastCheckedId = topId;
+        extraFromDB.lastCheckedId = topId;
         extraFromDB.idWasAdded = new Date();
-        extraFromDB.save();
+        extraFromDB.save(function(){
+            if (callback) callback();
+        });
     } else {
-        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
+        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save(function(){
+            if (callback) callback();
+        });
     }
 }
 
@@ -123,8 +125,6 @@ function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
-
-            // смотрим id топ15 записей
             var top15 = $('.item .desc');
 
             if (top15.length != 15) {
@@ -132,8 +132,8 @@ function getMainPage(callback) {
                 // TODO: exit if error here
             }
 
-            // TODO: updateExtra по окончанию
-//            updateExtra(topId);
+            topId = top15["0"].children["1"].children["0"].attribs.href;
+            topId = parseInt(topId.split('=')["1"]);
 
             var res = checkTop15(top15);
             if (callback) callback(res);
@@ -142,9 +142,9 @@ function getMainPage(callback) {
 }
 
 function runBurstOrChainer(topIDs) {
-    if (true) {
+    if (false) {
 //    if (topIDs) {
-        console.log('There is maybe sometheing new in TOP15.');
+        console.log('There is ID that we already know in Top15 so running parallel burst.');
 
         for (var i = 0; i < 15; i++) {
             getPageById(topIDs[i], true);
@@ -152,8 +152,8 @@ function runBurstOrChainer(topIDs) {
 
     } else {
         console.log('Running chainer so please wait...');
-        chainerPrev(id);
-        chainerNext(id);
+        chainerPrev(topId);
+        chainerNext(topId);
     }
 }
 
@@ -417,16 +417,21 @@ function done(param) {
     time = time < 60 ? time + ' sec.' : time / 60 + ' min.';
 
     if (param === 'burst') {
-        console.log('Done burst in ' + time);
-        console.log('Found ' + bK.added + ' new in TOP15.');
+        var text = 'Nothing';
+        if (bK.added > 0) {
+            text = 'Found ' + bK.added;
+        }
+        console.log(text + ' new in TOP15. Burst done in ' + time);
     } else if (param === 'chainer') {
         var total = cK.prevCount + cK.nextCount;
         console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount + ' NEXT)' +
             ' records added' + ' in ' + time);
     }
 
-    mongoose.disconnect(function () {
-        process.exit(0);
+    updateExtra(function(){
+        mongoose.disconnect(function () {
+            process.exit(0);
+        });
     });
 }
 
