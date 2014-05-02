@@ -1,7 +1,6 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8 сделана
 
-// TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
 // TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
@@ -23,7 +22,7 @@ var extraFromDB;
 var lastCheckedId;
 var idWasAdded;
 var topId;
-const maxToCheck = 5;
+const maxToCheck = 1000;
 
 var db = mongoose.connection;
 function getSchemaForCollection(col) {
@@ -87,11 +86,11 @@ function updateExtra(callback) {
     if (extraFromDB) {
         extraFromDB.lastCheckedId = topId;
         extraFromDB.idWasAdded = new Date();
-        extraFromDB.save(function(){
+        extraFromDB.save(function () {
             if (callback) callback();
         });
     } else {
-        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save(function(){
+        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save(function () {
             if (callback) callback();
         });
     }
@@ -144,85 +143,6 @@ function getPageById(id, isTopBurst, callback) {
             $ = cheerio.load(translator.convert(body).toString());
             var obj = {};
 
-            // Основные поля без левого и правого списков
-            obj.vse35Id = id;
-            var vac = $('.header-desc-ad-box .title').text();
-            if (vac == '') {
-                var extraVac = $('.st_title .title')["1"].children["0"].data;
-                var extraVacBegin = extraVac.substring(0, 6);
-                if (extraVacBegin != ' - зп ') {
-                    obj.vacancy = extraVac;
-                }
-            } else {
-                obj.vacancy = vac;
-            }
-
-            obj.text = $('.col1 .detail_text').text().trim();
-
-            obj.price = $('.price')["0"];
-            if (obj.price) {
-                obj.price = obj.price.children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
-            }
-
-            var addedInfo = $('.added-info');
-            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
-
-            var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
-            if (edited != obj.added) {
-                obj.edited = convertDate(edited);
-            }
-            obj.added = convertDate(obj.added);
-
-            var picture = $('.preview-box')["0"];
-            if (picture) {
-                obj.picture = picture.children["1"].attribs.href;
-            }
-
-            var author = $('.author')["0"];
-            if (author) {
-                obj.author = author.children["0"].data.trim();
-            }
-
-            var authorDetail = $('.contact-box .title')["0"];
-            if (authorDetail) {
-                var authorTitle = authorDetail.children["0"].attribs.href;
-                if (authorTitle != '') {
-                    obj.authorDetailName = authorDetail.children["0"].children["0"].data;
-                    var tmp = authorDetail.children["0"].attribs.href;
-                    obj.authorDetailId = parseInt(tmp.split('=')["1"]);
-                }
-            }
-
-            // Разбираем блок контактов справа
-            var nameRightBlock = $('.contact-box .field_name');
-            var valueRightBlock = $('.contact-box .field_value');
-
-            if (author) {
-                valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
-            }
-
-            var thereWasPhone;
-            var i;
-            for (i = 0; i < nameRightBlock.length; i++) {
-                var itemRightBlock = nameRightBlock[i].children["0"].data;
-                switch (itemRightBlock) {
-                    case 'Телефон':
-                        thereWasPhone = true;
-                        obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
-                        break;
-                    case 'Email':
-                        if (thereWasPhone) {
-                            obj.email = valueRightBlock[i + 1].children["0"].data.trim();
-                        }
-                        else {
-                            obj.email = valueRightBlock[i].children["0"].data.trim();
-                        }
-                }
-            }
-
-            var infoBox = addedInfo.find('li');
-            obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
-
             // Разбираем блок с контентом слева
             var nameLeftBlock = $('.col1 .item_inner .item_name');
             var valueLeftBlock = $('.col1 .item_inner .item_value');
@@ -232,6 +152,11 @@ function getPageById(id, isTopBurst, callback) {
                 var itemLeftBlock = nameLeftBlock[i].children["0"].data.trim();
                 var itemVal = valueLeftBlock[i].children["0"].data.trim();
                 switch (itemLeftBlock) {
+                    case 'Тип объявления':
+                        if (itemVal == 'Вакансия') {
+                            isVacancy = true;
+                        }
+                        break;
                     case 'Зарплата, р.':
                         if (itemVal != obj.price) {
                             obj.priceCustom = itemVal;
@@ -251,31 +176,113 @@ function getPageById(id, isTopBurst, callback) {
                         break;
                     case 'Образование':
                         obj.education = itemVal;
-                        break;
-                    case 'Тип объявления':
-                        if (itemVal == 'Вакансия') {
-                            isVacancy = true;
-                        }
                 }
             }
 
-            saveToDB(obj, isTopBurst, isVacancy);
 
-            var next = $('.next');
-            var nextId = 0;
-            if (next.length != 0) {
-                nextId = next["0"].children["0"].attribs.href;
-                nextId = parseInt(nextId.split('=')["1"]);
+            if (isVacancy) {
+                // Основные поля без левого и правого списков
+                obj.vse35Id = id;
+                var vac = $('.header-desc-ad-box .title').text();
+                if (vac == '') {
+                    var extraVac = $('.st_title .title')["1"].children["0"].data;
+                    var extraVacBegin = extraVac.substring(0, 6);
+                    if (extraVacBegin != ' - зп ') {
+                        obj.vacancy = extraVac;
+                    }
+                } else {
+                    obj.vacancy = vac;
+                }
+
+                obj.text = $('.col1 .detail_text').text().trim();
+
+                obj.price = $('.price')["0"];
+                if (obj.price) {
+                    obj.price = obj.price.children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
+                }
+
+                var addedInfo = $('.added-info');
+                obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+
+                var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
+                if (edited != obj.added) {
+                    obj.edited = convertDate(edited);
+                }
+                obj.added = convertDate(obj.added);
+
+                var picture = $('.preview-box')["0"];
+                if (picture) {
+                    obj.picture = picture.children["1"].attribs.href;
+                }
+
+                var author = $('.author')["0"];
+                if (author) {
+                    obj.author = author.children["0"].data.trim();
+                }
+
+                var authorDetail = $('.contact-box .title')["0"];
+                if (authorDetail) {
+                    var authorTitle = authorDetail.children["0"].attribs.href;
+                    if (authorTitle != '') {
+                        obj.authorDetailName = authorDetail.children["0"].children["0"].data;
+                        var tmp = authorDetail.children["0"].attribs.href;
+                        obj.authorDetailId = parseInt(tmp.split('=')["1"]);
+                    }
+                }
+
+                // Разбираем блок контактов справа
+                var nameRightBlock = $('.contact-box .field_name');
+                var valueRightBlock = $('.contact-box .field_value');
+
+                if (author) {
+                    valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
+                }
+
+                var thereWasPhone;
+                var i;
+                for (i = 0; i < nameRightBlock.length; i++) {
+                    var itemRightBlock = nameRightBlock[i].children["0"].data;
+                    switch (itemRightBlock) {
+                        case 'Телефон':
+                            thereWasPhone = true;
+                            obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
+                            break;
+                        case 'Email':
+                            if (thereWasPhone) {
+                                obj.email = valueRightBlock[i + 1].children["0"].data.trim();
+                            }
+                            else {
+                                obj.email = valueRightBlock[i].children["0"].data.trim();
+                            }
+                    }
+                }
+
+                var infoBox = addedInfo.find('li');
+                obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
+
+                saveVacancy(obj, isTopBurst);
+            } else {
+                if (isTopBurst) {
+                    bK.check();
+                }
             }
 
-            var prev = $('.prev');
-            var prevId = 0;
-            if (prev.length != 0) {
-                prevId = prev["0"].children["0"].attribs.href;
-                prevId = parseInt(prevId.split('=')["1"]);
-            }
+            if (callback) {
+                var next = $('.next');
+                var nextId = 0;
+                if (next.length != 0) {
+                    nextId = next["0"].children["0"].attribs.href;
+                    nextId = parseInt(nextId.split('=')["1"]);
+                }
 
-            if (callback) callback(prevId, nextId);
+                var prev = $('.prev');
+                var prevId = 0;
+                if (prev.length != 0) {
+                    prevId = prev["0"].children["0"].attribs.href;
+                    prevId = parseInt(prevId.split('=')["1"]);
+                }
+                callback(prevId, nextId);
+            }
         } // end if connect success
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
@@ -314,16 +321,6 @@ function saveVacancy(obj, isTopBurst) {
             });
         }
     });
-}
-
-function saveToDB(obj, isTopBurst, isVacancy) {
-    if (isVacancy) {
-        saveVacancy(obj, isTopBurst);
-    } else {
-        if (isTopBurst) {
-            bK.check();
-        }
-    }
 }
 
 function convertDate(strInput) {
@@ -382,7 +379,7 @@ function done(param) {
             ' NEXT) records added' + ' in ' + time);
     }
 
-    updateExtra(function(){
+    updateExtra(function () {
         mongoose.disconnect(function () {
             process.exit(0);
         });
@@ -409,8 +406,8 @@ function getLastCheckedId(callback) {
 }
 
 function runBurstOrChainer(topIDs) {
-//    if (false) {
-    if (topIDs) {
+    if (false) {
+//    if (topIDs) {
         console.log('There is ID that we already know in Top15 so running parallel burst.');
 
         for (var i = 0; i < 15; i++) {
