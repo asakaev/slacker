@@ -12,6 +12,9 @@
 
 // TODO: хеш считать или думать что-то новое на главной. иначе топ1 может быть постоянным а под ним поменяется
 
+// TODO: екстру обновлять когда всё хорошо
+// TODO: убрать лишний код который о резюме. отдельный бот лучше будет пусть который будет собирать контакты. иначе не ясно где что.
+
 var start = new Date().getTime();
 
 var request = require('request');
@@ -294,7 +297,7 @@ function saveVacancy(obj, isTopBurst) {
         }
 
         if (id) {
-            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
+//            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
             if (isTopBurst) bK.check();
         } else {
             new vacancy(obj).save(function (err) {
@@ -324,7 +327,7 @@ function saveResume(obj, isTopBurst) {
         }
 
         if (id) {
-            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
+//            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
             if (isTopBurst) bK.check();
         } else {
             new resume(obj).save(function (err) {
@@ -361,14 +364,14 @@ function convertDate(strInput) {
 function chainerPrev(id) {
     getPageById(id, false, function (prev, next) {
         cK.prevCount++;
-        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
+//        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
-//        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
-        if (prev != 0) {
+        if ((prev != 0) && (cK.prevCount < maxToCheck)) {
+//        if (prev != 0) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
+//            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
             cK.prevDone = true;
             cK.check();
         }
@@ -378,13 +381,14 @@ function chainerPrev(id) {
 function chainerNext(id) {
     getPageById(id, false, function (prev, next) {
         cK.nextCount++;
-        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
+//        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
-        if (next != 0) {
+        if ((next != 0) && (cK.nextCount < maxToCheck)) {
+//        if (next != 0) {
             chainerNext(next);
         }
         else {
-            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
+//            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
             cK.nextDone = true;
             cK.check();
         }
@@ -444,6 +448,7 @@ function runBurstOrChainer(id, topIDs) {
             }
         }
     } else {
+        console.log('Running chainer so please wait...');
         chainerPrev(id);
         chainerNext(id);
     }
