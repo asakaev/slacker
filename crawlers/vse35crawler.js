@@ -285,53 +285,65 @@ function getPageById(id, isTopBurst, callback) {
 }
 
 function saveVacancy(obj, isTopBurst) {
-    new vacancy(obj).save(function (err) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
-        }
-        else {
-            console.log('Added to db: ' + obj.vse35Id);
-            if (isTopBurst) bK.check();
-        }
-    });
-}
-
-function saveResume(obj, isTopBurst) {
-    new resume(obj).save(function (err) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
-        }
-        else {
-            console.log('Added resume to db: ' + obj.vse35Id);
-            if (isTopBurst) bK.check();
-        }
-    });
-}
-
-function saveToDB(obj, isTopBurst, isVacancy) {
     vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
         if (err) {
             console.log(err);
             //mongoose.disconnect();
             process.exit(1);
         }
-        var text = isVacancy ? 'Vacancy' : 'Resume';
 
         if (id) {
-            console.log(text + ' with id ' + obj.vse35Id + ' is already here.');
+            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
             if (isTopBurst) bK.check();
         } else {
-            if (isVacancy) {
-                saveVacancy(obj, isTopBurst);
-            } else {
-                saveResume(obj, isTopBurst);
-            }
+            new vacancy(obj).save(function (err) {
+                if (err) {
+                    console.log(err);
+                    //mongoose.disconnect();
+                    process.exit(1);
+                }
+                else {
+                    console.log('Added resume to db: ' + obj.vse35Id);
+                    if (isTopBurst) bK.check();
+                }
+            });
         }
     });
+}
+
+function saveResume(obj, isTopBurst) {
+    resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+
+        if (id) {
+            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
+            if (isTopBurst) bK.check();
+        } else {
+            new resume(obj).save(function (err) {
+                if (err) {
+                    console.log(err);
+                    //mongoose.disconnect();
+                    process.exit(1);
+                }
+                else {
+                    console.log('Added resume to db: ' + obj.vse35Id);
+                    if (isTopBurst) bK.check();
+                }
+            });
+        }
+    });
+}
+
+function saveToDB(obj, isTopBurst, isVacancy) {
+    if (isVacancy) {
+        saveVacancy(obj, isTopBurst);
+    } else {
+        saveResume(obj, isTopBurst);
+    }
 }
 
 function convertDate(strInput) {
@@ -409,8 +421,8 @@ function getLastCheckedId(callback) {
 }
 
 function runBurstOrChainer(id, topIDs) {
-    if (false) {
-//    if (topIDs) {
+//    if (false) {
+    if (topIDs) {
         bK.total = topIDs.length;
         if (bK.total == 0) {
             console.log('Nothing new since ' + idWasAdded + '.');
