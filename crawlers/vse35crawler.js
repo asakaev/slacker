@@ -3,12 +3,6 @@
 
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
-// TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
-// TODO: lastCheckedId сохранять. он только читается пока.
-// TODO: if error delete from db
-// TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
-
-// TODO: убрать лишний код который о резюме. отдельный бот лучше будет пусть который будет собирать контакты. иначе не ясно где что.
 
 var start = new Date().getTime();
 
@@ -20,42 +14,36 @@ var mongoose = require('mongoose');
 
 var extraFromDB;
 var lastCheckedId;
-var idWasAdded;
 var topId;
-const maxToCheck = 1000;
+const maxToCheck = 5;
 
 var db = mongoose.connection;
-function getSchemaForCollection(col) {
-    return mongoose.Schema({
-        vse35Id: Number,
-        vacancy: String,
-        text: String,
-        price: Number,
-        priceCustom: String,
-        added: Date,
-        edited: Date,
-        author: String,
-        tel: String,
-        email: String,
-        visitors: Number,
-        paymentPeriod: String,
-        experience: String,
-        education: String,
-        busyness: String,
-        workSchedule: String,
-        picture: String,
-        authorDetailName: String,
-        authorDetailId: Number
-    }, { versionKey: false,
-        collection: col });
-}
-
-var vacanciesSchema = getSchemaForCollection('vse35vacancies');
+var vacanciesSchema = mongoose.Schema({
+    vse35Id: Number,
+    vacancy: String,
+    text: String,
+    price: Number,
+    priceCustom: String,
+    added: Date,
+    edited: Date,
+    author: String,
+    tel: String,
+    email: String,
+    visitors: Number,
+    paymentPeriod: String,
+    experience: String,
+    education: String,
+    busyness: String,
+    workSchedule: String,
+    picture: String,
+    authorDetailName: String,
+    authorDetailId: Number
+}, { versionKey: false,
+    collection: 'vse35vacancies' });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
 
 var extraSchema = mongoose.Schema({
-    lastCheckedId: Number,
-    idWasAdded: Date
+    lastCheckedId: Number
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
@@ -64,9 +52,7 @@ var bK = {}; // Burst Keeper
 bK.checked = 0;
 bK.added = 0;
 bK.check = function () {
-    if (++this.checked == 15) {
-        done('burst');
-    }
+    if (++this.checked == 15) done('burst');
 };
 
 var cK = {}; // Chainer Keeper
@@ -76,21 +62,18 @@ cK.prevCount = 0;
 cK.nextCount = 0;
 cK.added = 0;
 cK.check = function () {
-    if (this.prevDone && this.nextDone) {
-        done('chainer');
-    }
+    if (this.prevDone && this.nextDone) done('chainer');
 };
 
 function updateExtra(callback) {
     // If there is date in DB then update it, else create new
     if (extraFromDB) {
         extraFromDB.lastCheckedId = topId;
-        extraFromDB.idWasAdded = new Date();
         extraFromDB.save(function () {
             if (callback) callback();
         });
     } else {
-        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save(function () {
+        new extra({ lastCheckedId: topId }).save(function () {
             if (callback) callback();
         });
     }
@@ -125,7 +108,7 @@ function getMainPage(callback) {
 
             if (top15.length != 15) {
                 console.log('WRN: Top 15 structure is changed!');
-                // TODO: exit if error here
+                process.exit(1);
             }
 
             topId = top15["0"].children["1"].children["0"].attribs.href;
@@ -300,6 +283,8 @@ function saveVacancy(obj, isTopBurst) {
             process.exit(1);
         }
 
+        console.log(id);
+
         if (id) {
 //            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
             if (isTopBurst) bK.check();
@@ -396,7 +381,6 @@ function getLastCheckedId(callback) {
         // If there is last update Date in DB then use it, otherwise null
         if (extraFromDB) {
             lastCheckedId = extraFromDB.lastCheckedId;
-            idWasAdded = extraFromDB.idWasAdded;
             console.log('The last time top ID was ' + lastCheckedId + '.');
         } else {
             console.log('There is no last updated ID in database.');
