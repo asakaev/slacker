@@ -7,32 +7,52 @@
 	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
 	box-sizing: border-box;         /* Opera/IE 8+ */
 }
+body, html{
+	height:100%;
+}
 #wrapper{
 	min-height: 100%;
 	height: 100%;
-	width: 90%;
+	width: 100%;
 	height: auto !important;
 	margin: 0 auto;
+	margin-top: 0;
+	padding-bottom: 40px;
 }
-/*#header{
+#header{
+	color: #222;
 	width: 100%;
-	overflow: hidden;
-	position: fixed;
-	height: 80px;
-	background-color: lightgray;
-}*/
+	height: 60px;
+	background-color: #fff;
+	margin-bottom: 60px;
+}
+#user-info ul{
+	color: #404040;
+	font-size: 13px;
+	line-height: 60px;
+	float:right;
+}
+#user-info ul li{
+	margin-right: 20px;
+	margin-left: 20px;
+	display: inline-block;
+}
+#user-info ul li:first-child{
+	margin-left: 0;
+}
 #search{
-	width: 90%;
-	position: fixed;
-	z-index: 10000;
-	top: 50%;
-	margin-top: -105px;
+	margin: 0 auto;
+	width: 50%;
+	position: relative;
+	top:50%;
 }
 .logo-big{
 	/*display: none;*/
+	letter-spacing: 10px;
 	font-size: 3em;
 	text-transform: uppercase;
 	text-align: center;
+	margin-bottom: 60px;
 }
 .logo-small{
 	display: none;
@@ -43,11 +63,12 @@
 #searchText{
 	width: 100%;
 	border: 0px solid #fff;
-	line-height: 24px;
+	line-height: 16px;
 	font-size: inherit;
 	outline: none;
 	text-align: left;
 	margin: 5px auto;
+	text-transform: lowercase;
 
 }
 .searchresult{
@@ -64,8 +85,9 @@
 	height: 32px;
 	line-height: 34px;
 	overflow: hidden;
-	font-size: 1.5em;
+	font-size: 17px;
 	padding-left: 10px;
+	text-transform: lowercase;
 }
 li.selected{
 	background: #D8D8D8;
@@ -73,16 +95,19 @@ li.selected{
 }
 .search-string{
 	z-index: 10000;
+	margin: 0 auto;
 	background-color: #fff;
 	width: 100%;
-	height: 38px;
+	height: 32px;
 	line-height: 24px;
 	border: 1px solid #808080;
-	font-size: 1.5em;
+	/*font-size: 1.1em;*/
+	font: 17px Arial, sans-serif;
 	outline: none;
 	text-align: left;
 	padding-left: 10px;
 	padding-right: 10px;
+	text-transform: lowercase;
 }
 /*------------------------------------welcome to internet explorer-------------------------------*/
 input[type=text]::-ms-clear {
@@ -91,13 +116,18 @@ input[type=text]::-ms-clear {
 }
 #content{
 	z-index:1;
-	margin-top: 7%;
 	margin-left: 2%;
 	position: relative;
 }
 #content .vacancy{
 	text-decoration: underline;
 	font-style: bold;
+}
+#content .description{
+	color: #545454;
+	width: 50%;
+	font-size: 14px;
+	text-align: justify;
 }
 li.selected{
 	background: #D8D8D8;
@@ -107,4 +137,32 @@ li.selected{
 }
 .nav li{
 	display: inline-block;
+}
+.content_ul li{
+	margin: 30px 0;
+}
+#footer{
+	position: relative;
+	margin-top: -40px;
+	height: 40px;
+	width: 100%;
+	background: #F0F0F0;
+	border-top: 1px solid #e4e4e4;
+	color: #666;
+	font-size: 10pt;
+	line-height: 38px;
+}
+#footer ul{
+	float: right;
+}
+#footer ul li{
+	display: inline-block;
+	margin-right: 20px;
+}
+#footer ul li{
+	display: inline-block;
+	margin-left: 20px;
+}
+#footer ul li:first-child{
+	margin-left: 0;
 }

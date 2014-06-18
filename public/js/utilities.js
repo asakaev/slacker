@@ -21,18 +21,20 @@ function toggleLogo(){
 function changeState(numOfState){
 	if(numOfState == 0){
 		$('.logo-big').css({"display" : "block"});
-		$('#search').css({'width': '90%', 'position': 'fixed', 'z-index': '10000', 'top': '50%', 'margin-top': '-105px'});
+		$('#search').css({'width': '50%', 'position':'relative', 'margin':'0 auto', 'top':'50%'});
 		$(".searchresult").css({"display":"none"});
-		$("content").css({"display":"none"});
+		$("#content").css({"display":"none"});
 		$(".content_ul").empty();
+		$("#header").css({"background-color": "#FFF"});
 	}
 	if(numOfState == 1){
 		$('.logo-big').css("display", "none");
 		$('#search').css({'width': '50%',
-		'position': 'fixed',
-		'top': '2%', 'margin-top':'0'})
+		'position': 'absolute',
+		'top': '14px', 'margin-top':'0', 'margin-left':'14px'})
 		$(".searchresult").css({"display":"none"});
-		$("content").css({"display":"none"});
+		$("#content").css({"display":"block"});
+		$("#header").css({"background-color": "#F0F0F0"});
 		$(".content_ul").empty();
 	}
 }
@@ -67,7 +69,7 @@ function detectKeys(e) {
     else if (e.which == 13) {
 		var q = $('#searchText').val();
 		Search.simpleSearch(q);
-		History.pushState(null, null, liveurl + q);
+		History.pushState(null, null, "search?=" + q);
 		$('#searchText').blur();
     }
 }
@@ -79,7 +81,7 @@ $(".searchresult").on("mouseleave", ".searchresult_ul li", function() {
 })
 History.Adapter.bind(window, 'statechange', function(){
 	var State = History.getState(),
-		newQuery = State.hash.substring(7, State.hash.length);
+		newQuery = State.hash.substring(9, State.hash.length);
 	$('#searchText').val(newQuery);
 	if(newQuery!==''){
 		Search.simpleSearch(newQuery);	

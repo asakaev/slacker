@@ -8,6 +8,7 @@ var Search = {
 			$(".searchresult").css({"display":"none"});
 			return;
 		}
+		
 		$.ajax({
 			dataType: "JSON",
 			type: "get",
@@ -28,8 +29,19 @@ var Search = {
 				// $(".content").empty();
 				$(".searchresult").css({"display": "block"});
 				$.each(data, function(i,val){
-					var listItem = "<li>"+val.vacancy+"</li>";
-					$(".searchresult_ul").append(listItem);
+					if(val.vacancy[i] == val.vacancy[i++]){
+						console.log(val.vacancy + " has same results")
+					}
+					if(val.vacancy!==null){
+						Start = val.vacancy.substring(0, $('#searchText').val().length);
+						End = val.vacancy.substring($('#searchText').val().length, val.vacancy.length);
+						if($('#searchText').val().toLowerCase() == Start.toLowerCase())
+						{
+						 	var listItem = "<li>"+Start+End.bold()+"</li>";
+							$(".searchresult_ul").append(listItem);;
+						}
+					}
+					
 				})
 				
 			}
@@ -74,16 +86,22 @@ $("#search").on("click", function() {
 	Search.simpleSearch(query);
 })
 $(".searchresult").on("click", ".searchresult_ul li", function() {
-	var content = $(this).text(),
-		pageurl = liveurl + content;
-	$("#searchText").val(content);
-	Search.simpleSearch(content);
+	var q = $(this).text(),
+		//pageurl = liveurl + "#" + content;
+	pageurl = '?search=' + q;
+	$("#searchText").val(q);
+	Search.simpleSearch(q);
 	History.pushState(null, null, pageurl);	
 })
 
 $('#searchText').on('input', function() {
 	var query = $(this).val();
-	Search.liveSearch(query);
+	clearTimeout(window.timer);
+	window.timer=setTimeout(function(){ // setting the delay for each keypress
+                Search.liveSearch(query); //runs the ajax request
+
+        }, 1000);
+	;
 
 });
 $('#searchText').on('keydown', detectKeys );
