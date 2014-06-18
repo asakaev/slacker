@@ -96,12 +96,7 @@ $(".searchresult").on("click", ".searchresult_ul li", function() {
 
 $('#searchText').on('input', function() {
 	var query = $(this).val();
-	clearTimeout(window.timer);
-	window.timer=setTimeout(function(){ // setting the delay for each keypress
-                Search.liveSearch(query); //runs the ajax request
-
-        }, 1000);
-	;
+	Search.liveSearch(query); //runs the ajax request
 
 });
 $('#searchText').on('keydown', detectKeys );
