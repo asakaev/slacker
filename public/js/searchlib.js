@@ -72,7 +72,7 @@ var Search = {
 				// $(".content").empty();
 				$("content").css({"display": "block"});
 				$.each(data, function(i,val) {
-					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"<br>"+val.tel+"</div></li>";
+					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"</div></li>";
 					$(".content_ul").append(listItem);
 				})
 				
