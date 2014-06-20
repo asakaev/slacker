@@ -122,6 +122,7 @@ input[type=text]::-ms-clear {
 #content .vacancy{
 	text-decoration: underline;
 	font-style: bold;
+	margin-bottom: 10px;
 }
 #content .description{
 	color: #545454;
