@@ -15,7 +15,7 @@ var mongoose = require('mongoose');
 var extraFromDB;
 var lastCheckedId;
 var topId;
-const maxToCheck = 5;
+const maxToCheck = 500;
 
 var db = mongoose.connection;
 var vacanciesSchema = mongoose.Schema({
@@ -65,6 +65,17 @@ cK.added = 0;
 cK.check = function () {
     if (this.prevDone && this.nextDone) done('chainer');
 };
+
+
+var chainerFirstElement = {}; // Chainer First
+chainerFirstElement.isFirstChainerElement = true;
+chainerFirstElement.check = function () {
+    if (this.isFirstChainerElement) {
+        this.isFirstChainerElement = false;
+        return true;
+    }
+    else return false;
+}
 
 function updateExtra(callback) {
     // If there is date in DB then update it, else create new
@@ -245,7 +256,10 @@ function getPageById(id, isTopBurst, callback) {
                 var infoBox = addedInfo.find('li');
                 obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
 
-                saveVacancy(obj, isTopBurst);
+                // if not first chainer element that doubles and not top burst
+                if (!(chainerFirstElement.check() && !isTopBurst)) {
+                    saveVacancy(obj, isTopBurst);
+                }
             } else {
                 if (isTopBurst) {
                     bK.check();
@@ -324,21 +338,24 @@ function saveVacancy(obj, isTopBurst) {
                 // TODO: check updated
             }
         } else {
-            new vacancy(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
+            // if not same ID then add
+            if (!(finded != null && finded.vse35Id == obj.vse35Id)) {
+                new vacancy(obj).save(function (err) {
+                    if (err) {
+                        console.log(err);
+                        //mongoose.disconnect();
+                        process.exit(1);
+                    }
 
-                console.log('Added vacancy to db: ' + obj.vse35Id);
-                if (isTopBurst) {
-                    bK.added++;
-                    bK.check();
-                } else {
-                    cK.added++;
-                }
-            });
+                    console.log('Added vacancy to db: ' + obj.vse35Id);
+                    if (isTopBurst) {
+                        bK.added++;
+                        bK.check();
+                    } else {
+                        cK.added++;
+                    }
+                });
+            }
         }
     });
 }
