@@ -88,10 +88,10 @@ $("#search").on("click", function() {
 $(".searchresult").on("click", ".searchresult_ul li", function() {
 	var q = $(this).text(),
 		//pageurl = liveurl + "#" + content;
-	// pageurl = '?search=' + q;
+	pageurl = '?search=' + q;
 	$("#searchText").val(q);
 	Search.simpleSearch(q);
-	History.pushState(null, null, '?search=' + q);	
+	History.pushState(null, null, pageurl);	
 })
 
 $('#searchText').on('input', function() {
