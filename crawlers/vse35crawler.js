@@ -51,6 +51,7 @@ var extra = mongoose.model('Extra', extraSchema);
 var bK = {}; // Burst Keeper
 bK.checked = 0;
 bK.added = 0;
+bK.updated = 0;
 bK.check = function () {
     if (++this.checked == 15) done('burst');
 };
@@ -79,7 +80,7 @@ function updateExtra(callback) {
     }
 }
 
-function checkTop15(top15) {
+function parseTop15(top15) {
     var arr = [];
     var lastCheckedFinded = false;
 
@@ -88,6 +89,10 @@ function checkTop15(top15) {
         var id = top15[i].children["1"].children["0"].attribs.href;
         id = parseInt(id.split('=')["1"]);
         arr.push(id);
+
+        if (i == 0) {
+            topId = id;
+        }
         if (id != lastCheckedId) {
             lastCheckedFinded = true;
         }
@@ -111,10 +116,7 @@ function getMainPage(callback) {
                 process.exit(1);
             }
 
-            topId = top15["0"].children["1"].children["0"].attribs.href;
-            topId = parseInt(topId.split('=')["1"]);
-
-            var res = checkTop15(top15);
+            var res = parseTop15(top15);
             if (callback) callback(res);
         }
     })
@@ -275,19 +277,52 @@ function getPageById(id, isTopBurst, callback) {
     });
 }
 
+function isEdited(obj) {
+    if (obj != null) {
+        if (typeof obj.edited != 'undefined') {
+            return true;
+        }
+    }
+    return false;
+}
+
 function saveVacancy(obj, isTopBurst) {
-    vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
+    vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, finded) {
         if (err) {
             console.log(err);
             //mongoose.disconnect();
             process.exit(1);
         }
 
-        console.log(id);
+        if (isEdited(finded)) {
+//      if (false) {
 
-        if (id) {
-//            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) bK.check();
+            var findedDate = finded.edited.toISOString();
+            var objDate = obj.edited.toISOString();
+
+            if (findedDate != objDate) {
+                finded.remove(function () {
+                    if (err) console.log(err);
+                    new vacancy(obj).save(function (err) {
+                        if (err) {
+                            console.log(err);
+                            //mongoose.disconnect();
+                            process.exit(1);
+                        }
+
+                        console.log('Updated vacancy to db: ' + obj.vse35Id);
+                        if (isTopBurst) {
+                            bK.updated++;
+                            bK.check();
+                        } else {
+                            cK.added++;
+                        }
+                    });
+                });
+            } else {
+                if (isTopBurst) bK.check();
+                // TODO: check updated
+            }
         } else {
             new vacancy(obj).save(function (err) {
                 if (err) {
@@ -319,13 +354,11 @@ function convertDate(strInput) {
 function chainerPrev(id) {
     getPageById(id, false, function (prev, next) {
         cK.prevCount++;
-//        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
         if ((prev != 0) && (cK.prevCount < maxToCheck)) {
             chainerPrev(prev);
         }
         else {
-//            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
             cK.prevDone = true;
             cK.check();
         }
@@ -335,13 +368,11 @@ function chainerPrev(id) {
 function chainerNext(id) {
     getPageById(id, false, function (prev, next) {
         cK.nextCount++;
-//        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
         if ((next != 0) && (cK.nextCount < maxToCheck)) {
             chainerNext(next);
         }
         else {
-//            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
             cK.nextDone = true;
             cK.check();
         }
@@ -354,10 +385,10 @@ function done(param) {
 
     if (param === 'burst') {
         var text = 'Nothing';
-        if (bK.added > 0) {
-            text = 'Found ' + bK.added;
+        if (bK.added > 0 || bK.updated > 0) {
+            text = 'Added: ' + bK.added + ', updated: ' + bK.updated;
         }
-        console.log(text + ' new in TOP15. Burst done in ' + time);
+        console.log(text + ' from TOP15. Burst done in ' + time);
     } else if (param === 'chainer') {
         var total = cK.prevCount + cK.nextCount;
         console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount +
@@ -395,7 +426,7 @@ function runBurstOrChainer(topIDs) {
         console.log('There is ID that we already know in Top15 so running parallel burst.');
 
         for (var i = 0; i < 15; i++) {
-            getPageById(topIDs[i], true);
+            getPageById(topIDs[i], true); // true is for Burst
         }
 
     } else {
@@ -414,8 +445,8 @@ function main() {
         }
 
         getLastCheckedId(function () {
-            getMainPage(function (id, topIDs) {
-                runBurstOrChainer(id, topIDs);
+            getMainPage(function (topIDs) {
+                runBurstOrChainer(topIDs);
             });
         });
     });
