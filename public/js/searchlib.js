@@ -72,7 +72,7 @@ var Search = {
 				// $(".content").empty();
 				$("content").css({"display": "block"});
 				$.each(data, function(i,val) {
-					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"</div></li>";
+					var listItem = "<li><div class = \"vacancy\"><a href = \"#\">"+val.vacancy+"</a></div><div class = \"description\">"+val.text+"<br>"+val.tel+"</div></li>";
 					$(".content_ul").append(listItem);
 				})
 				
@@ -88,10 +88,10 @@ $("#search").on("click", function() {
 $(".searchresult").on("click", ".searchresult_ul li", function() {
 	var q = $(this).text(),
 		//pageurl = liveurl + "#" + content;
-	pageurl = '?search=' + q;
+	// pageurl = '?search=' + q;
 	$("#searchText").val(q);
 	Search.simpleSearch(q);
-	History.pushState(null, null, pageurl);	
+	History.pushState(null, null, '?search=' + q);	
 })
 
 $('#searchText').on('input', function() {
