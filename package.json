@@ -1,16 +1,27 @@
 {
-    "name": "work",
-    "version": "0.0.1",
-    "description": "work app",
-    "main": "app.js",
-    "author": {
-        "name": "IMIT",
-        "email": ""
-    },
-    "dependencies": {
-        "express": "3.4.4",
-        "jade": "*",
-        "stylus": "*",
-        "mongoose": "^3.8.8"
-    }
+  "name": "work",
+  "version": "0.0.1",
+  "description": "work app",
+  "main": "app.js",
+  "author": {
+    "name": "IMIT",
+    "email": ""
+  },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-autoprefixer": "^2.3.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-load-plugins": "^1.0.0-rc.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-ruby-sass": "^1.0.5",
+    "gulp-uglify": "^1.2.0",
+    "gulp-util": "^3.0.6",
+    "gulp-webserver": "^0.9.1"
+  },
+  "dependencies": {
+    "express": "3.4.4",
+    "jade": "*",
+    "stylus": "*",
+    "mongoose": "^3.8.8"
+  }
 }
