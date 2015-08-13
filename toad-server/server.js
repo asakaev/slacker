@@ -1,6 +1,6 @@
 var http = require('http');
 var pg = require('pg').native;
-var config = requre('./config.json');
+var config = require('./config.json');
 
 var username = config.pg.username;
 var pass = config.pg.pass;
