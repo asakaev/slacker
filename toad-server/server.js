@@ -5,7 +5,7 @@ var config = requre('./config.json');
 var username = config.pg.username;
 var pass = config.pg.pass;
 
-var conString = "postgres://" + username ":" + pass + "@localhost/" + config.pg.db;
+var conString = "postgres://" + username + ":" + pass + "@localhost/" + config.pg.db;
 var client = new pg.Client(conString);
 client.connect();
 
