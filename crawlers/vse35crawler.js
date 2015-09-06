@@ -1,16 +1,8 @@
 // vse35 crawler
 // Конвертация кодировки из 1251 в UTF8 сделана
 
-// TODO: там же и базу компаний хаслить. короче всё где есть электронные адреса. бесплатная реклама.
 // TODO: сделать проверку по updated на сайте и у нас в базе. если разное то заменять !!!
-// TODO: refactor saveVacToDB & saveResumeToDB to one function. дублирование всёровно
 // TODO: оптимизировать проход. если в базе есть и обновление такое же то и не парсить поля остальные. может быстрее будет.
-// TODO: не ждать парсинга. брать одну страницу за другой, а парсинг и добавление параллельно запускать (парсить только next/id)
-// TODO: lastCheckedId сохранять. он только читается пока.
-// TODO: if error delete from db
-// TODO: done() и incAnd... проверить. похожи вроде. в одну слить.
-
-// TODO: хеш считать или думать что-то новое на главной. иначе топ1 может быть постоянным а под ним поменяется
 
 var start = new Date().getTime();
 
@@ -22,54 +14,46 @@ var mongoose = require('mongoose');
 
 var extraFromDB;
 var lastCheckedId;
-var idWasAdded;
-const maxToCheck = 5;
+var topId;
+const maxToCheck = 500;
 
 var db = mongoose.connection;
-function getSchemaForCollection(col) {
-    return mongoose.Schema({
-        vse35Id: Number,
-        vacancy: String,
-        text: String,
-        price: Number,
-        priceCustom: String,
-        added: Date,
-        edited: Date,
-        author: String,
-        tel: String,
-        email: String,
-        visitors: Number,
-        paymentPeriod: String,
-        experience: String,
-        education: String,
-        busyness: String,
-        workSchedule: String,
-        picture: String,
-        authorDetailName: String,
-        authorDetailId: Number
-    }, { versionKey: false,
-        collection: col });
-}
-
-var vacanciesSchema = getSchemaForCollection('vse35vacancies');
+var vacanciesSchema = mongoose.Schema({
+    vse35Id: Number,
+    vacancy: String,
+    text: String,
+    price: Number,
+    priceCustom: String,
+    added: Date,
+    edited: Date,
+    author: String,
+    tel: String,
+    email: String,
+    visitors: Number,
+    paymentPeriod: String,
+    experience: String,
+    education: String,
+    busyness: String,
+    workSchedule: String,
+    picture: String,
+    authorDetailName: String,
+    authorDetailId: Number
+}, { versionKey: false,
+    collection: 'vse35vacancies' });
 var vacancy = mongoose.model('Vacancy', vacanciesSchema);
-var resumesSchema = getSchemaForCollection('vse35resumes');
-var resume = mongoose.model('Resume', resumesSchema);
 
 var extraSchema = mongoose.Schema({
-    lastCheckedId: Number,
-    idWasAdded: Date
+    lastCheckedId: Number
 }, { versionKey: false,
     collection: 'extra'});
 var extra = mongoose.model('Extra', extraSchema);
 
 var bK = {}; // Burst Keeper
-bK.total = 0;
 bK.checked = 0;
+bK.added = 0;
+bK.updated = 0;
 bK.check = function () {
-    if (++this.checked == this.total) {
-        done('burst');
-    }
+    if (++this.checked == 15) done('burst');
 };
 
 var cK = {}; // Chainer Keeper
@@ -77,20 +61,58 @@ cK.prevDone = false;
 cK.nextDone = false;
 cK.prevCount = 0;
 cK.nextCount = 0;
+cK.added = 0;
 cK.check = function () {
-    if (this.prevDone && this.nextDone) {
-        done('chainer');
-    }
+    if (this.prevDone && this.nextDone) done('chainer');
 };
 
-function updateExtra(topId) {
+
+var chainerFirstElement = {}; // Chainer First
+chainerFirstElement.isFirstChainerElement = true;
+chainerFirstElement.check = function () {
+    if (this.isFirstChainerElement) {
+        this.isFirstChainerElement = false;
+        return true;
+    }
+    else return false;
+}
+
+function updateExtra(callback) {
     // If there is date in DB then update it, else create new
     if (extraFromDB) {
-//                extraFromDB.lastCheckedId = topId;
-        extraFromDB.idWasAdded = new Date();
-        extraFromDB.save();
+        extraFromDB.lastCheckedId = topId;
+        extraFromDB.save(function () {
+            if (callback) callback();
+        });
     } else {
-        new extra({ lastCheckedId: topId, idWasAdded: new Date() }).save();
+        new extra({ lastCheckedId: topId }).save(function () {
+            if (callback) callback();
+        });
+    }
+}
+
+function parseTop15(top15) {
+    var arr = [];
+    var lastCheckedFinded = false;
+
+    // Check if there is something we already know in top15
+    for (var i = 0; i < top15.length; i++) {
+        var id = top15[i].children["1"].children["0"].attribs.href;
+        id = parseInt(id.split('=')["1"]);
+        arr.push(id);
+
+        if (i == 0) {
+            topId = id;
+        }
+        if (id != lastCheckedId) {
+            lastCheckedFinded = true;
+        }
+    }
+
+    if (lastCheckedFinded) {
+        return arr;
+    } else {
+        return false;
     }
 }
 
@@ -98,41 +120,15 @@ function getMainPage(callback) {
     request({ url: 'http://vse35.ru/job/?print=y', encoding: null }, function (error, response, body) {
         if (!error && response.statusCode == 200) {
             $ = cheerio.load(translator.convert(body).toString());
-
-            // смотрим id топ15 записей
             var top15 = $('.item .desc');
-            var top15count = top15.length;
 
-            if (top15count != 15) {
+            if (top15.length != 15) {
                 console.log('WRN: Top 15 structure is changed!');
-                // TODO: exit if error here
+                process.exit(1);
             }
 
-            var topId = top15["0"].children["1"].children["0"].attribs.href;
-            topId = parseInt(topId.split('=')["1"]);
-            updateExtra(topId);
-
-            var arr = [];
-            // Check if there is something we already know in top15
-            for (var i = 0; i < top15count; i++) {
-                var id = top15[i].children["1"].children["0"].attribs.href;
-                id = parseInt(id.split('=')["1"]);
-
-                if (id != lastCheckedId) {
-                    arr.push(id);
-                } else {
-                    break;
-                }
-            }
-
-            if (callback) {
-                // If all new then just topId else arr with NEW IDs
-                if (i == top15count) {
-                    callback(topId);
-                } else {
-                    callback(topId, arr);
-                }
-            }
+            var res = parseTop15(top15);
+            if (callback) callback(res);
         }
     })
 }
@@ -143,85 +139,6 @@ function getPageById(id, isTopBurst, callback) {
             $ = cheerio.load(translator.convert(body).toString());
             var obj = {};
 
-            // Основные поля без левого и правого списков
-            obj.vse35Id = id;
-            var vac = $('.header-desc-ad-box .title').text();
-            if (vac == '') {
-                var extraVac = $('.st_title .title')["1"].children["0"].data;
-                var extraVacBegin = extraVac.substring(0, 6);
-                if (extraVacBegin != ' - зп ') {
-                    obj.vacancy = extraVac;
-                }
-            } else {
-                obj.vacancy = vac;
-            }
-
-            obj.text = $('.col1 .detail_text').text().trim();
-
-            obj.price = $('.price')["0"];
-            if (obj.price) {
-                obj.price = obj.price.children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
-            }
-
-            var addedInfo = $('.added-info');
-            obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
-
-            var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
-            if (edited != obj.added) {
-                obj.edited = convertDate(edited);
-            }
-            obj.added = convertDate(obj.added);
-
-            var picture = $('.preview-box')["0"];
-            if (picture) {
-                obj.picture = picture.children["1"].attribs.href;
-            }
-
-            var author = $('.author')["0"];
-            if (author) {
-                obj.author = author.children["0"].data.trim();
-            }
-
-            var authorDetail = $('.contact-box .title')["0"];
-            if (authorDetail) {
-                var authorTitle = authorDetail.children["0"].attribs.href;
-                if (authorTitle != '') {
-                    obj.authorDetailName = authorDetail.children["0"].children["0"].data;
-                    var tmp = authorDetail.children["0"].attribs.href;
-                    obj.authorDetailId = parseInt(tmp.split('=')["1"]);
-                }
-            }
-
-            // Разбираем блок контактов справа
-            var nameRightBlock = $('.contact-box .field_name');
-            var valueRightBlock = $('.contact-box .field_value');
-
-            if (author) {
-                valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
-            }
-
-            var thereWasPhone;
-            var i;
-            for (i = 0; i < nameRightBlock.length; i++) {
-                var itemRightBlock = nameRightBlock[i].children["0"].data;
-                switch (itemRightBlock) {
-                    case 'Телефон':
-                        thereWasPhone = true;
-                        obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
-                        break;
-                    case 'Email':
-                        if (thereWasPhone) {
-                            obj.email = valueRightBlock[i + 1].children["0"].data.trim();
-                        }
-                        else {
-                            obj.email = valueRightBlock[i].children["0"].data.trim();
-                        }
-                }
-            }
-
-            var infoBox = addedInfo.find('li');
-            obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
-
             // Разбираем блок с контентом слева
             var nameLeftBlock = $('.col1 .item_inner .item_name');
             var valueLeftBlock = $('.col1 .item_inner .item_value');
@@ -231,6 +148,11 @@ function getPageById(id, isTopBurst, callback) {
                 var itemLeftBlock = nameLeftBlock[i].children["0"].data.trim();
                 var itemVal = valueLeftBlock[i].children["0"].data.trim();
                 switch (itemLeftBlock) {
+                    case 'Тип объявления':
+                        if (itemVal == 'Вакансия') {
+                            isVacancy = true;
+                        }
+                        break;
                     case 'Зарплата, р.':
                         if (itemVal != obj.price) {
                             obj.priceCustom = itemVal;
@@ -250,31 +172,116 @@ function getPageById(id, isTopBurst, callback) {
                         break;
                     case 'Образование':
                         obj.education = itemVal;
-                        break;
-                    case 'Тип объявления':
-                        if (itemVal == 'Вакансия') {
-                            isVacancy = true;
-                        }
                 }
             }
 
-            saveToDB(obj, isTopBurst, isVacancy);
 
-            var next = $('.next');
-            var nextId = 0;
-            if (next.length != 0) {
-                nextId = next["0"].children["0"].attribs.href;
-                nextId = parseInt(nextId.split('=')["1"]);
+            if (isVacancy) {
+                // Основные поля без левого и правого списков
+                obj.vse35Id = id;
+                var vac = $('.header-desc-ad-box .title').text();
+                if (vac == '') {
+                    var extraVac = $('.st_title .title')["1"].children["0"].data;
+                    var extraVacBegin = extraVac.substring(0, 6);
+                    if (extraVacBegin != ' - зп ') {
+                        obj.vacancy = extraVac;
+                    }
+                } else {
+                    obj.vacancy = vac;
+                }
+
+                obj.text = $('.col1 .detail_text').text().trim();
+
+                obj.price = $('.price')["0"];
+                if (obj.price) {
+                    obj.price = obj.price.children["1"].data.replace('р.', '').replace(/ /g, ''); // RU and spaces cleanup
+                }
+
+                var addedInfo = $('.added-info');
+                obj.added = addedInfo["0"].children["3"].children["1"].children["0"].data;
+
+                var edited = addedInfo["0"].children["5"].children["1"].children["0"].data;
+                if (edited != obj.added) {
+                    obj.edited = convertDate(edited);
+                }
+                obj.added = convertDate(obj.added);
+
+                var picture = $('.preview-box')["0"];
+                if (picture) {
+                    obj.picture = picture.children["1"].attribs.href;
+                }
+
+                var author = $('.author')["0"];
+                if (author) {
+                    obj.author = author.children["0"].data.trim();
+                }
+
+                var authorDetail = $('.contact-box .title')["0"];
+                if (authorDetail) {
+                    var authorTitle = authorDetail.children["0"].attribs.href;
+                    if (authorTitle != '') {
+                        obj.authorDetailName = authorDetail.children["0"].children["0"].data;
+                        var tmp = authorDetail.children["0"].attribs.href;
+                        obj.authorDetailId = parseInt(tmp.split('=')["1"]);
+                    }
+                }
+
+                // Разбираем блок контактов справа
+                var nameRightBlock = $('.contact-box .field_name');
+                var valueRightBlock = $('.contact-box .field_value');
+
+                if (author) {
+                    valueRightBlock.splice(0, 1); // если автор есть то выкидываем его, иначе мешает с телефоном/емейлом
+                }
+
+                var thereWasPhone;
+                var i;
+                for (i = 0; i < nameRightBlock.length; i++) {
+                    var itemRightBlock = nameRightBlock[i].children["0"].data;
+                    switch (itemRightBlock) {
+                        case 'Телефон':
+                            thereWasPhone = true;
+                            obj.tel = valueRightBlock[i + 1].children["0"].data.trim();
+                            break;
+                        case 'Email':
+                            if (thereWasPhone) {
+                                obj.email = valueRightBlock[i + 1].children["0"].data.trim();
+                            }
+                            else {
+                                obj.email = valueRightBlock[i].children["0"].data.trim();
+                            }
+                    }
+                }
+
+                var infoBox = addedInfo.find('li');
+                obj.visitors = infoBox[infoBox.length - 1].children["1"].children["0"].data;
+
+                // if not first chainer element that doubles and not top burst
+                if (!(chainerFirstElement.check() && !isTopBurst)) {
+                    saveVacancy(obj, isTopBurst);
+                }
+            } else {
+                if (isTopBurst) {
+                    bK.check();
+                }
             }
 
-            var prev = $('.prev');
-            var prevId = 0;
-            if (prev.length != 0) {
-                prevId = prev["0"].children["0"].attribs.href;
-                prevId = parseInt(prevId.split('=')["1"]);
-            }
+            if (callback) {
+                var next = $('.next');
+                var nextId = 0;
+                if (next.length != 0) {
+                    nextId = next["0"].children["0"].attribs.href;
+                    nextId = parseInt(nextId.split('=')["1"]);
+                }
 
-            if (callback) callback(prevId, nextId);
+                var prev = $('.prev');
+                var prevId = 0;
+                if (prev.length != 0) {
+                    prevId = prev["0"].children["0"].attribs.href;
+                    prevId = parseInt(prevId.split('=')["1"]);
+                }
+                callback(prevId, nextId);
+            }
         } // end if connect success
         else {
             console.log('Cannot get page with id: ' + id + ', stop now.');
@@ -284,66 +291,73 @@ function getPageById(id, isTopBurst, callback) {
     });
 }
 
-function saveVacancy(obj, isTopBurst) {
-    vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
+function isEdited(obj) {
+    if (obj != null) {
+        if (typeof obj.edited != 'undefined') {
+            return true;
         }
-
-        if (id) {
-            console.log('Vacancy with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) bK.check();
-        } else {
-            new vacancy(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-                else {
-                    console.log('Added resume to db: ' + obj.vse35Id);
-                    if (isTopBurst) bK.check();
-                }
-            });
-        }
-    });
-}
-
-function saveResume(obj, isTopBurst) {
-    resume.findOne({'vse35Id': obj.vse35Id}, function (err, id) {
-        if (err) {
-            console.log(err);
-            //mongoose.disconnect();
-            process.exit(1);
-        }
-
-        if (id) {
-            console.log('Resume with id ' + obj.vse35Id + ' is already here.');
-            if (isTopBurst) bK.check();
-        } else {
-            new resume(obj).save(function (err) {
-                if (err) {
-                    console.log(err);
-                    //mongoose.disconnect();
-                    process.exit(1);
-                }
-                else {
-                    console.log('Added resume to db: ' + obj.vse35Id);
-                    if (isTopBurst) bK.check();
-                }
-            });
-        }
-    });
-}
-
-function saveToDB(obj, isTopBurst, isVacancy) {
-    if (isVacancy) {
-        saveVacancy(obj, isTopBurst);
-    } else {
-        saveResume(obj, isTopBurst);
     }
+    return false;
+}
+
+function saveVacancy(obj, isTopBurst) {
+    vacancy.findOne({'vse35Id': obj.vse35Id}, function (err, finded) {
+        if (err) {
+            console.log(err);
+            //mongoose.disconnect();
+            process.exit(1);
+        }
+
+        if (isEdited(finded)) {
+//      if (false) {
+
+            var findedDate = finded.edited.toISOString();
+            var objDate = obj.edited.toISOString();
+
+            if (findedDate != objDate) {
+                finded.remove(function () {
+                    if (err) console.log(err);
+                    new vacancy(obj).save(function (err) {
+                        if (err) {
+                            console.log(err);
+                            //mongoose.disconnect();
+                            process.exit(1);
+                        }
+
+                        console.log('Updated vacancy to db: ' + obj.vse35Id);
+                        if (isTopBurst) {
+                            bK.updated++;
+                            bK.check();
+                        } else {
+                            cK.added++;
+                        }
+                    });
+                });
+            } else {
+                if (isTopBurst) bK.check();
+                // TODO: check updated
+            }
+        } else {
+            // if not same ID then add
+            if (!(finded != null && finded.vse35Id == obj.vse35Id)) {
+                new vacancy(obj).save(function (err) {
+                    if (err) {
+                        console.log(err);
+                        //mongoose.disconnect();
+                        process.exit(1);
+                    }
+
+                    console.log('Added vacancy to db: ' + obj.vse35Id);
+                    if (isTopBurst) {
+                        bK.added++;
+                        bK.check();
+                    } else {
+                        cK.added++;
+                    }
+                });
+            }
+        }
+    });
 }
 
 function convertDate(strInput) {
@@ -357,13 +371,11 @@ function convertDate(strInput) {
 function chainerPrev(id) {
     getPageById(id, false, function (prev, next) {
         cK.prevCount++;
-        console.log('Prev count: ' + cK.prevCount + ' this id: ' + id + ', prev: ' + prev);
 
         if ((prev != 0) && (cK.prevCount < maxToCheck)) {
             chainerPrev(prev);
         }
         else {
-            console.log('We went back [<<] and got ' + cK.prevCount + ' pages.');
             cK.prevDone = true;
             cK.check();
         }
@@ -373,13 +385,11 @@ function chainerPrev(id) {
 function chainerNext(id) {
     getPageById(id, false, function (prev, next) {
         cK.nextCount++;
-        console.log('Next count: ' + cK.nextCount + ' this id: ' + id + ', next: ' + next);
 
         if ((next != 0) && (cK.nextCount < maxToCheck)) {
             chainerNext(next);
         }
         else {
-            console.log('We went forward [>>] and got ' + cK.nextCount + ' pages.');
             cK.nextDone = true;
             cK.check();
         }
@@ -391,13 +401,21 @@ function done(param) {
     time = time < 60 ? time + ' sec.' : time / 60 + ' min.';
 
     if (param === 'burst') {
-        console.log('Done burst in ' + time);
+        var text = 'Nothing';
+        if (bK.added > 0 || bK.updated > 0) {
+            text = 'Added: ' + bK.added + ', updated: ' + bK.updated;
+        }
+        console.log(text + ' from TOP15. Burst done in ' + time);
     } else if (param === 'chainer') {
-        console.log('Done chainer in ' + time);
+        var total = cK.prevCount + cK.nextCount;
+        console.log('There was ' + cK.added + '/' + total + ' (' + cK.prevCount + ' PREV and ' + cK.nextCount +
+            ' NEXT) records added' + ' in ' + time);
     }
 
-    mongoose.disconnect(function () {
-        process.exit(0);
+    updateExtra(function () {
+        mongoose.disconnect(function () {
+            process.exit(0);
+        });
     });
 }
 
@@ -411,7 +429,6 @@ function getLastCheckedId(callback) {
         // If there is last update Date in DB then use it, otherwise null
         if (extraFromDB) {
             lastCheckedId = extraFromDB.lastCheckedId;
-            idWasAdded = extraFromDB.idWasAdded;
             console.log('The last time top ID was ' + lastCheckedId + '.');
         } else {
             console.log('There is no last updated ID in database.');
@@ -420,25 +437,19 @@ function getLastCheckedId(callback) {
     });
 }
 
-function runBurstOrChainer(id, topIDs) {
-//    if (false) {
-    if (topIDs) {
-        bK.total = topIDs.length;
-        if (bK.total == 0) {
-            console.log('Nothing new since ' + idWasAdded + '.');
-            done();
-        } else {
-            var isAre = bK.total == 1 ? ' is ' : ' are ';
-            console.log('There' + isAre + bK.total + ' fresh vacancies on main page since '
-                + idWasAdded + ' and top ID is ' + id + '.');
+function runBurstOrChainer(topIDs) {
+    if (false) {
+//    if (topIDs) {
+        console.log('There is ID that we already know in Top15 so running parallel burst.');
 
-            for (var i = 0; i < bK.total; i++) {
-                getPageById(topIDs[i], true);
-            }
+        for (var i = 0; i < 15; i++) {
+            getPageById(topIDs[i], true); // true is for Burst
         }
+
     } else {
-        chainerPrev(id);
-        chainerNext(id);
+        console.log('Running chainer so please wait...');
+        chainerPrev(topId);
+        chainerNext(topId);
     }
 }
 
@@ -451,8 +462,8 @@ function main() {
         }
 
         getLastCheckedId(function () {
-            getMainPage(function (id, topIDs) {
-                runBurstOrChainer(id, topIDs);
+            getMainPage(function (topIDs) {
+                runBurstOrChainer(topIDs);
             });
         });
     });
