@@ -1,5 +1,8 @@
 .idea
 
+node_modules
+
 dictionary
 etc/config.json
-node_modules
+etc/config-dev.json
+etc/config-prod.json
