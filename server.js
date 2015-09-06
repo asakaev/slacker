@@ -1,6 +1,6 @@
 var http = require('http');
 var pg = require('pg').native;
-var config = require('./config.json');
+var config = require('./etc/config.json');
 
 var username = config.pg.username;
 var pass = config.pg.pass;
@@ -19,7 +19,6 @@ var router = function(req, res) {
   var param = split[2];
 
   if (action === 'search' && param) {
-    console.log('is search with param: ' + param);
     return searchHandler(res, param);
   }
 
@@ -37,7 +36,7 @@ var searchHandler = function(res, param) {
       return console.error('error running query', err);
     }
 
-    res.end('Here we go! 🐸\n' + JSON.stringify(result.rows) + '\n');
+    res.end(JSON.stringify(result.rows[0]) + '\n');
   });
 };
 
