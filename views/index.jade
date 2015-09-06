@@ -7,21 +7,29 @@ html
   body
     #wrapper
       #header
-        #search
-          .logo-big  агрегатор вакансий
-          .logo-small АВ
-          .search-string
-            input#searchText(type='text', name='req1')
-          .searchresult
-            ul.searchresult_ul
-        //- #features
-        //-   ul.nav
-        //-     li#top top15
-        //-     li#login_button(onclick='VK.Auth.login(authInfo);')
-      #content
-        ul.content_ul
-    //-Content 
+        #user-info
+          ul 
+            li Вы вошли как 
+              a(href='#') Admin
+            li Зарегистрироваться
+            li Выйти
 
+      #search
+        .logo-big  агрегатор вакансий
+        .logo-small ав
+        .search-string
+          input#searchText(type='text', name='req1')
+        .searchresult
+          ul.searchresult_ul
+      div(style='clear: both;')
+      #content
+        ul.content_ul 
+    
+    #footer
+      ul 
+        li О компании
+        li Сотрудничество
+        li Для организаций
     script(src='/js/jquery.min.js')
     script(src='/js/jquery.history.js')
     script(src='http://vk.com/js/api/openapi.js', type='text/javascript')
