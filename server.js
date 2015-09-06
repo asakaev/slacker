@@ -36,11 +36,7 @@ var searchHandler = function(res, param) {
       return console.error('error running query', err);
     }
 
-    if (result.rows[0]) {
-      res.end(JSON.stringify(result.rows[0]) + '\n');
-    } else {
-      res.end('{}\n');
-    }
+    res.end(JSON.stringify(result.rows) + '\n');
   });
 };
 
