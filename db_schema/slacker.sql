@@ -4,7 +4,7 @@
 
 -- Dumped from database version 9.1.18
 -- Dumped by pg_dump version 9.4.0
--- Started on 2015-09-10 00:56:29 MSK
+-- Started on 2015-09-10 01:00:06 MSK
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -14,8 +14,8 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- TOC entry 1863 (class 1262 OID 11919)
--- Dependencies: 1862
+-- TOC entry 1862 (class 1262 OID 11919)
+-- Dependencies: 1861
 -- Name: postgres; Type: COMMENT; Schema: -; Owner: postgres
 --
 
@@ -41,7 +41,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 1867 (class 0 OID 0)
+-- TOC entry 1866 (class 0 OID 0)
 -- Dependencies: 164
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
 --
@@ -61,7 +61,7 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE hustle (
-    text text DEFAULT 'foo'::character varying NOT NULL,
+    text text NOT NULL,
     id integer NOT NULL,
     added bigint,
     vacancy text,
@@ -104,7 +104,7 @@ CREATE SEQUENCE test_key_column_seq
 ALTER TABLE test_key_column_seq OWNER TO postgres;
 
 --
--- TOC entry 1868 (class 0 OID 0)
+-- TOC entry 1867 (class 0 OID 0)
 -- Dependencies: 163
 -- Name: test_key_column_seq; Type: SEQUENCE OWNED BY; Schema: slacker; Owner: postgres
 --
@@ -121,7 +121,7 @@ ALTER TABLE ONLY hustle ALTER COLUMN id SET DEFAULT nextval('test_key_column_seq
 
 
 --
--- TOC entry 1756 (class 2606 OID 16410)
+-- TOC entry 1755 (class 2606 OID 16410)
 -- Name: test_pkey; Type: CONSTRAINT; Schema: slacker; Owner: postgres; Tablespace: 
 --
 
@@ -130,7 +130,7 @@ ALTER TABLE ONLY hustle
 
 
 --
--- TOC entry 1865 (class 0 OID 0)
+-- TOC entry 1864 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -142,7 +142,7 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
--- TOC entry 1866 (class 0 OID 0)
+-- TOC entry 1865 (class 0 OID 0)
 -- Dependencies: 7
 -- Name: slacker; Type: ACL; Schema: -; Owner: postgres
 --
@@ -152,7 +152,7 @@ REVOKE ALL ON SCHEMA slacker FROM postgres;
 GRANT ALL ON SCHEMA slacker TO postgres;
 
 
--- Completed on 2015-09-10 00:56:30 MSK
+-- Completed on 2015-09-10 01:00:07 MSK
 
 --
 -- PostgreSQL database dump complete
