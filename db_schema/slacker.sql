@@ -2,9 +2,9 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.1.16
+-- Dumped from database version 9.1.18
 -- Dumped by pg_dump version 9.4.0
--- Started on 2015-09-07 00:22:37 MSK
+-- Started on 2015-09-10 00:56:29 MSK
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -67,7 +67,22 @@ CREATE TABLE hustle (
     vacancy text,
     id_sputnik text,
     tel text,
-    issue integer
+    issue integer,
+    vse35_id text,
+    price text,
+    price_custom text,
+    edited bigint,
+    author text,
+    email text,
+    visitors integer,
+    payment_period text,
+    experience text,
+    education text,
+    busyness text,
+    work_schedule text,
+    picture text,
+    author_detail_name text,
+    author_detail_id text
 );
 
 
@@ -137,7 +152,7 @@ REVOKE ALL ON SCHEMA slacker FROM postgres;
 GRANT ALL ON SCHEMA slacker TO postgres;
 
 
--- Completed on 2015-09-07 00:22:38 MSK
+-- Completed on 2015-09-10 00:56:30 MSK
 
 --
 -- PostgreSQL database dump complete
