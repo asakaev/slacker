@@ -22,12 +22,11 @@ var router = function(req, res) {
     return searchHandler(res, param);
   }
 
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
   defaultHandler(res);
 };
 
 var searchHandler = function(res, param) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-
   var sql = 'SELECT * FROM ' + config.pg.schema + '.' + config.pg.table +
       " WHERE text LIKE '%" + param + "%'";
 
@@ -41,7 +40,6 @@ var searchHandler = function(res, param) {
 };
 
 var defaultHandler = function(res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'});
   res.end('🐸\n');
 };
 
