@@ -16,7 +16,7 @@ var router = function(req, res) {
   var url = req.url;
   var split = url.split('/');
   var action = split[1];
-  var param = split[2];
+  var param = decodeURI(split[2]);
 
   if (action === 'search' && param) {
     return searchHandler(res, param);
