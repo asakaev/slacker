@@ -1,8 +1,8 @@
 # Done is better than perfect
 
-1. clone from GitHub.
-2. cd /your/full/path/toproject
-3. npm install (It will install all npm modules needed to run)
+1. Clone from GitHub.
+2. cd /your/path/to/gitrepo
+3. npm install
 
 ====
 
@@ -15,4 +15,4 @@
 ===
 
 * main page (NOT YET): http://sl.acker.ru
-* search api: curl http://sl.acker.ru/search/`node -p "encodeURI('водитель')"`
+* search api example: ``` curl http://sl.acker.ru/search/`node -p "encodeURI('водитель')"` ```
