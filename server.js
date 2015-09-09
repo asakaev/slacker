@@ -22,7 +22,6 @@ var router = function(req, res) {
     return searchHandler(res, param);
   }
 
-  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
   defaultHandler(res);
 };
 
@@ -35,11 +34,13 @@ var searchHandler = function(res, param) {
       return console.error('error running query', err);
     }
 
+    res.writeHead(200, {'Content-Type': 'application/json; charset=utf-8'});
     res.end(JSON.stringify(result.rows) + '\n');
   });
 };
 
 var defaultHandler = function(res) {
+  res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
   res.end('🐸\n');
 };
 
