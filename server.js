@@ -1,6 +1,7 @@
 var http = require('http');
 var pg = require('pg').native;
 var config = require('./etc/config.json');
+var version = require('./package.json').version;
 
 var username = config.pg.username;
 var pass = config.pg.pass;
@@ -41,7 +42,7 @@ var searchHandler = function(res, param) {
 
 var defaultHandler = function(res) {
   res.writeHead(200, {'Content-Type': 'text/plain; charset=utf-8'});
-  res.end('🐸\n');
+  res.end('🐸 '+ 'v' + version + '\n');
 };
 
 http.createServer(router).listen(config.port, config.host);
