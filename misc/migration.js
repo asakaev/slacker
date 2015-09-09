@@ -3,7 +3,7 @@ var config = require('../etc/config.json');
 var async = require('async');
 
 
-var pgInsert = function(pgClient, docs, callback) {
+var pgInsertSputnik = function(pgClient, docs, callback) {
   var docsPrepared = docs.map(function(doc) {
     return [
       doc.vacancy,
@@ -53,7 +53,7 @@ var sputnikMigrate = function(mongo, pg, callback) {
     },
     function(docs, callback) {
       console.log('Inserting to PostgreSQL...');
-      pgInsert(pg, docs, function(error, failed) {
+      pgInsertSputnik(pg, docs, function(error, failed) {
         if (error) {
           console.error('pg insert error:', error);
         }
@@ -66,8 +66,25 @@ var sputnikMigrate = function(mongo, pg, callback) {
 
 
 var vse35Migrate = function(mongo, pg, callback) {
-  console.log('vse35 mock!');
-  callback();
+  async.waterfall([
+    function(callback) {
+      var vse35vacancies = mongo.collection('vse35vacancies');
+      vse35vacancies.find({}).toArray(function (error, docs) {
+        if (error) {
+          console.log(error);
+          return callback(error);
+        }
+
+        console.log('Vse35 collection docs:', docs.length);
+        callback(null, docs);
+      });
+    },
+    function(docs, callback) {
+      console.log('Inserting to PostgreSQL... mock');
+      //console.log(JSON.stringify(docs));
+      callback();
+    }
+  ], callback);
 };
 
 var disconnect = function(mongo, pg) {
