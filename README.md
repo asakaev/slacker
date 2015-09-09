@@ -15,4 +15,4 @@
 ===
 
 * main page (NOT YET): http://sl.acker.ru
-* search api: http://sl.acker.ru/search/text
+* search api: curl http://sl.acker.ru/search/`node -p "encodeURI('водитель')"`
