@@ -1,6 +1,7 @@
 {
   "name": "slacker",
-  "version": "1.0.1",
+  "version": "1.0.2",
+  "description": "work for slackers",
 
   "devDependencies": {
     "gulp": "^3.9.0",

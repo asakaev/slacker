@@ -3,7 +3,7 @@ var config = require('../etc/config.json');
 var async = require('async');
 
 
-var pgInsert = function(pgClient, docs, callback) {
+var pgInsertSputnik = function(pgClient, docs, callback) {
   var docsPrepared = docs.map(function(doc) {
     return [
       doc.vacancy,
@@ -37,20 +37,10 @@ var pgInsert = function(pgClient, docs, callback) {
 };
 
 
-var onBothConnected = function(error, results) {
-  if (error) {
-    console.log(error);
-    process.exit(1);
-  }
-
-  console.log('Connected to MongoDB and PostreSQL.');
-
-  var pgClient = results[0];
-  var mongoDb = results[1];
-
+var sputnikMigrate = function(mongo, pg, callback) {
   async.waterfall([
     function(callback) {
-      var sputnik = mongoDb.collection('sputnik');
+      var sputnik = mongo.collection('sputnik');
       sputnik.find({}).toArray(function (error, docs) {
         if (error) {
           console.log(error);
@@ -62,8 +52,8 @@ var onBothConnected = function(error, results) {
       });
     },
     function(docs, callback) {
-      console.log('Inserting...');
-      pgInsert(pgClient, docs, function(error, failed) {
+      console.log('Inserting to PostgreSQL...');
+      pgInsertSputnik(pg, docs, function(error, failed) {
         if (error) {
           console.error('pg insert error:', error);
         }
@@ -71,22 +61,79 @@ var onBothConnected = function(error, results) {
         callback(null, failed);
       });
     }
-  ],
-  function(error, failed) {
-    console.log('Complete.');
+  ], callback);
+};
 
-    mongoDb.close();
-    pgClient.end();
 
-    if (error) {
-      console.log(error);
+var vse35Migrate = function(mongo, pg, callback) {
+  async.waterfall([
+    function(callback) {
+      var vse35vacancies = mongo.collection('vse35vacancies');
+      vse35vacancies.find({}).toArray(function (error, docs) {
+        if (error) {
+          console.log(error);
+          return callback(error);
+        }
+
+        console.log('Vse35 collection docs:', docs.length);
+        callback(null, docs);
+      });
+    },
+    function(docs, callback) {
+      console.log('Inserting to PostgreSQL... mock');
+      //console.log(JSON.stringify(docs));
+      callback();
     }
+  ], callback);
+};
 
-    if (failed) {
-      console.log('Failed inserts:', failed);
-    } else {
-      console.log('Done without errors.');
+var disconnect = function(mongo, pg) {
+  mongo.close();
+  pg.end();
+};
+
+
+var migrate = function(mongo, pg, callback) {
+  async.series([
+    function(callback) {
+      sputnikMigrate(mongo, pg, function(error, failed) {
+        console.log('Sputnik complete.');
+
+        if (error) {
+          console.log(error);
+          disconnect(mongo, pg);
+          process.exit(1);
+        }
+
+        if (failed) {
+          console.log('Failed inserts:', failed);
+          disconnect(mongo, pg);
+          process.exit(1);
+        }
+
+        callback();
+      });
+    },
+    function(callback) {
+      vse35Migrate(mongo, pg, callback);
     }
+  ], callback);
+};
+
+
+var onBothConnected = function(error, results) {
+  if (error) {
+    console.log(error);
+    process.exit(1);
+  }
+
+  console.log('Connected to MongoDB and PostreSQL.');
+  var mongo = results[1];
+  var pg = results[0];
+
+  migrate(mongo, pg, function() {
+    console.log('Done without errors.');
+    disconnect(mongo, pg);
   });
 };
 
