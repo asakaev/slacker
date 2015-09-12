@@ -4,7 +4,7 @@
 
 -- Dumped from database version 9.1.18
 -- Dumped by pg_dump version 9.4.0
--- Started on 2015-09-10 01:00:06 MSK
+-- Started on 2015-09-12 17:07:31 MSK
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -63,8 +63,8 @@ SET default_with_oids = false;
 CREATE TABLE hustle (
     text text NOT NULL,
     id integer NOT NULL,
-    added bigint,
-    vacancy text,
+    added bigint NOT NULL,
+    vacancy text NOT NULL,
     id_sputnik text,
     tel text,
     issue integer,
@@ -152,7 +152,7 @@ REVOKE ALL ON SCHEMA slacker FROM postgres;
 GRANT ALL ON SCHEMA slacker TO postgres;
 
 
--- Completed on 2015-09-10 01:00:07 MSK
+-- Completed on 2015-09-12 17:07:32 MSK
 
 --
 -- PostgreSQL database dump complete
