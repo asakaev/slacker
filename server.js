@@ -28,7 +28,7 @@ var router = function(req, res) {
 
 var searchHandler = function(res, param) {
   var sql = 'SELECT * FROM ' + config.pg.schema + '.' + config.pg.table +
-      " WHERE text LIKE '%" + param + "%'";
+      " WHERE text ILIKE '%" + param + "%'";
 
   client.query(sql, function(err, result) {
     if(err) {
