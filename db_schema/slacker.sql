@@ -4,7 +4,7 @@
 
 -- Dumped from database version 9.1.18
 -- Dumped by pg_dump version 9.4.0
--- Started on 2015-09-17 23:59:06 MSK
+-- Started on 2015-09-18 00:13:10 MSK
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -14,8 +14,8 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
--- TOC entry 1867 (class 1262 OID 11919)
--- Dependencies: 1866
+-- TOC entry 1868 (class 1262 OID 11919)
+-- Dependencies: 1867
 -- Name: postgres; Type: COMMENT; Schema: -; Owner: postgres
 --
 
@@ -41,7 +41,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 1871 (class 0 OID 0)
+-- TOC entry 1872 (class 0 OID 0)
 -- Dependencies: 164
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
 --
@@ -104,7 +104,7 @@ CREATE SEQUENCE hustle_id_seq
 ALTER TABLE hustle_id_seq OWNER TO postgres;
 
 --
--- TOC entry 1872 (class 0 OID 0)
+-- TOC entry 1873 (class 0 OID 0)
 -- Dependencies: 163
 -- Name: hustle_id_seq; Type: SEQUENCE OWNED BY; Schema: slacker; Owner: postgres
 --
@@ -156,7 +156,15 @@ CREATE INDEX id ON hustle USING btree (id);
 
 
 --
--- TOC entry 1869 (class 0 OID 0)
+-- TOC entry 1761 (class 1259 OID 41067)
+-- Name: text_index; Type: INDEX; Schema: slacker; Owner: postgres; Tablespace: 
+--
+
+CREATE INDEX text_index ON hustle USING btree (text);
+
+
+--
+-- TOC entry 1870 (class 0 OID 0)
 -- Dependencies: 5
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -168,7 +176,7 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --
--- TOC entry 1870 (class 0 OID 0)
+-- TOC entry 1871 (class 0 OID 0)
 -- Dependencies: 7
 -- Name: slacker; Type: ACL; Schema: -; Owner: postgres
 --
@@ -178,7 +186,7 @@ REVOKE ALL ON SCHEMA slacker FROM postgres;
 GRANT ALL ON SCHEMA slacker TO postgres;
 
 
--- Completed on 2015-09-17 23:59:06 MSK
+-- Completed on 2015-09-18 00:13:11 MSK
 
 --
 -- PostgreSQL database dump complete
